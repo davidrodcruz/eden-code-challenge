@@ -1,0 +1,1237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eden PACS · QA Automation Challenge</title>
+<meta name="description" content="Estrategia, Arquitectura y Hallazgos Clínicos — Code Challenge Lead QA Automation · Eden PACS">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:        oklch(0.16 0.013 255);
+    --surface:   oklch(0.195 0.02 255);
+    --surface-2: oklch(0.235 0.022 255);
+    --fg:        oklch(0.93 0.006 250);
+    --muted:     oklch(0.64 0.03 255);
+    --border:    oklch(0.72 0.17 245 / 0.22);
+    --accent:    oklch(0.72 0.17 245);
+    --accent-soft: oklch(0.72 0.17 245 / 0.12);
+    --green:     oklch(0.87 0.21 165);
+    --green-dim: oklch(0.87 0.21 165 / 0.12);
+    --red:       oklch(0.70 0.2 5);
+    --red-dim:   oklch(0.70 0.2 5 / 0.12);
+    --amber:     oklch(0.80 0.16 70);
+    --amber-dim: oklch(0.80 0.16 70 / 0.12);
+    --font-display:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+    --font-body:   "Inter","Segoe UI",system-ui,sans-serif;
+    --font-mono:   "JetBrains Mono","Cascadia Code","Consolas",monospace;
+    --ease: cubic-bezier(.22,.8,.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);
+    font-family:var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  a{color:inherit}
+
+  /* ---------- Deck / track ---------- */
+  .deck{position:fixed;inset:0;outline:none;overflow:hidden}
+  .track{display:flex;height:100%;width:max-content;transform:translateX(0);
+    transition:transform .62s var(--ease);will-change:transform}
+  .slide{position:relative;width:100vw;height:100vh;flex:0 0 100vw;display:flex;
+    align-items:center;justify-content:center;overflow:hidden}
+
+  /* scan motif — único floreo decorativo del deck */
+  .slide::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 38%, oklch(0.72 0.17 245 / .07), transparent 60%),
+      repeating-linear-gradient(0deg, oklch(0.93 0.006 250 / .022) 0 1px, transparent 1px 52px),
+      repeating-linear-gradient(90deg, oklch(0.93 0.006 250 / .022) 0 1px, transparent 1px 52px);
+    mask-image:linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.45));
+  }
+  .slide::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:repeating-linear-gradient(0deg, oklch(0.93 0.006 250 / .05) 0 1px, transparent 1px 3px);
+    mix-blend-mode:screen;opacity:.5}
+  .theme-elevated{background:oklch(0.185 0.015 255)}
+  .theme-dark, .theme-hero-dark{background:var(--bg)}
+  .theme-hero-dark::before{background:
+    radial-gradient(ellipse 55% 52% at 50% 40%, oklch(0.72 0.17 245 / .12), transparent 62%),
+    repeating-linear-gradient(0deg, oklch(0.93 0.006 250 / .02) 0 1px, transparent 1px 52px),
+    repeating-linear-gradient(90deg, oklch(0.93 0.006 250 / .02) 0 1px, transparent 1px 52px)}
+
+  .wrap{position:relative;z-index:1;width:min(1240px,90vw);max-height:92vh;
+    display:flex;flex-direction:column}
+
+  /* ---------- Typography ---------- */
+  .kicker{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-mono);
+    font-size:clamp(12px,1vw,14px);font-weight:500;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--muted)}
+  .kicker::before{content:"";width:26px;height:1px;background:var(--accent)}
+  .kicker b{color:var(--accent);font-weight:600}
+  .h-hero{font-family:var(--font-display);font-weight:600;
+    font-size:clamp(44px,6.4vw,92px);line-height:1.04;letter-spacing:-.025em;
+    text-wrap:balance}
+  .h-section{font-family:var(--font-display);font-weight:600;
+    font-size:clamp(34px,4.2vw,58px);line-height:1.08;letter-spacing:-.02em;
+    text-wrap:balance;margin-top:14px}
+  .lead{font-size:clamp(19px,1.7vw,25px);line-height:1.45;color:var(--muted);
+    max-width:64ch;margin-top:16px}
+  .sub{font-size:clamp(17px,1.5vw,22px);line-height:1.5;color:var(--muted)}
+  .accent-t{color:var(--accent)}
+  .green-t{color:var(--green)}
+
+  /* ---------- Cover ---------- */
+  .cover-scan{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .cover-scan .ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    border:1px solid oklch(0.72 0.17 245 / .16);border-radius:50%}
+  .cover-scan .r1{width:34vmin;height:34vmin}
+  .cover-scan .r2{width:54vmin;height:54vmin;border-color:oklch(0.72 0.17 245 / .13)}
+  .cover-scan .r3{width:76vmin;height:76vmin;border-color:oklch(0.72 0.17 245 / .09)}
+  .cover-scan .r4{width:102vmin;height:102vmin;border-color:oklch(0.72 0.17 245 / .06)}
+  .cover-scan .cross{position:absolute;top:50%;left:50%}
+  .cover-scan .cross::before,.cover-scan .cross::after{content:"";position:absolute;
+    top:50%;left:50%;background:oklch(0.72 0.17 245 / .22)}
+  .cover-scan .cross::before{width:120vmin;height:1px;transform:translate(-50%,-50%)}
+  .cover-scan .cross::after{width:1px;height:120vmin;transform:translate(-50%,-50%)}
+  .cover-scan .sweep{position:absolute;top:50%;left:50%;width:118vmin;height:118vmin;
+    transform:translate(-50%,-50%);border-radius:50%;
+    background:conic-gradient(from 0deg, transparent 0 70%, oklch(0.72 0.17 245 / .16) 88%, transparent 100%);
+    animation:spin 22s linear infinite;opacity:.8}
+  .cover-scan .scanlines{position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg, oklch(0.93 0.006 250 / .045) 0 1px, transparent 1px 4px);
+    mix-blend-mode:screen}
+  .cover-scan .codefeed{position:absolute;left:6vw;bottom:7vh;max-width:38%;
+    font-family:var(--font-mono);font-size:clamp(10px,.75vw,13px);line-height:1.9;
+    color:var(--green);opacity:.55;white-space:pre-wrap}
+  .cover-scan .codefeed b{color:var(--accent);opacity:.8;font-weight:500}
+  @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.cover-scan .sweep{animation:none}}
+
+  .cover-body{align-items:center;text-align:center}
+  .cover-body .wrap{align-items:center}
+  .cover-badge{display:inline-flex;align-items:center;gap:9px;padding:9px 18px;
+    border:1px solid var(--border);border-radius:999px;background:var(--surface);
+    font-family:var(--font-mono);font-size:clamp(11px,.85vw,13px);letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted)}
+  .cover-badge i{width:7px;height:7px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 10px var(--green)}
+  .cover-title{margin-top:30px}
+  .cover-sub{margin-top:18px;color:var(--muted);font-size:clamp(19px,1.8vw,26px);font-weight:400}
+  .cover-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;margin-top:44px;
+    font-family:var(--font-mono);font-size:clamp(11px,.85vw,13px);letter-spacing:.04em;color:var(--muted)}
+  .cover-meta span{display:inline-flex;align-items:center;gap:8px}
+  .cover-meta svg{width:14px;height:14px;stroke:var(--accent)}
+
+  /* ---------- Layout helpers ---------- */
+  .head{margin-bottom:34px}
+  .grid{display:grid;gap:26px;width:100%}
+  .grid-2{grid-template-columns:1.05fr .95fr}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  @media (max-width:960px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:24px 26px;position:relative}
+  .card-label{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);
+    font-size:clamp(11px,.8vw,12.5px);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .card-title{font-family:var(--font-display);font-weight:600;
+    font-size:clamp(20px,1.9vw,26px);line-height:1.15;letter-spacing:-.01em;margin-top:10px}
+  .card p{font-size:clamp(16.5px,1.4vw,20px);line-height:1.55;color:var(--muted);margin-top:12px}
+  .card p b{color:var(--fg);font-weight:600}
+
+  /* estabilidad · slide 02 (sin cajas anidadas) */
+  .focus-ico.mint{background:var(--green-dim);border-color:oklch(0.87 0.21 165 / .3);color:var(--green)}
+  .estabilidad{display:flex;flex-direction:column}
+  .est-row{display:flex;align-items:center;gap:14px;padding:16px 0}
+  .est-row + .est-row{margin-top:10px}
+  .est-row h4{font-family:var(--font-display);font-weight:600;color:var(--green);
+    font-size:clamp(16px,1.4vw,19px);letter-spacing:-.01em}
+  .est-row p{margin:2px 0 0;font-size:clamp(13px,1.1vw,15.5px);line-height:1.45;color:var(--muted)}
+  .objetivo-pills{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+
+  /* slide 02 · impacto ejecutivo */
+  .grid-asym{grid-template-columns:2fr 3fr}
+  @media (max-width:960px){.grid-asym{grid-template-columns:1fr}}
+  .card-hero{border-color:color-mix(in oklab,var(--green) 38%,transparent);
+    box-shadow:0 0 36px -10px color-mix(in oklab,var(--green) 32%,transparent),
+      0 26px 60px -30px rgba(0,0,0,.7);
+    background:linear-gradient(180deg,color-mix(in oklab,var(--green) 6%,var(--surface)),var(--surface) 46%)}
+  .card-mute{background:oklch(0.182 0.013 255)}
+  .verb{display:inline-block;font-weight:800;font-size:1.16em;
+    letter-spacing:-.02em;color:var(--fg);margin-right:.14em}
+
+  /* tercios · slide 02 (derecha sin box, reparto 33%) */
+  .card-col{display:flex;flex-direction:column}
+  .tercios{display:flex;flex-direction:column;flex:1;gap:6px;margin-top:10px}
+  .tercio{flex:1 1 0;display:flex;align-items:center;gap:14px;padding:0 4px}
+  .tercio h4{font-family:var(--font-display);font-weight:600;font-size:clamp(15.5px,1.35vw,18.5px);color:var(--fg);line-height:1.3}
+  .tercio p{margin:3px 0 0;font-size:clamp(13px,1.1vw,15.5px);line-height:1.45;color:var(--muted)}
+
+  /* enfoque lead qa · filas apiladas · slide 02 */
+  .focus{display:flex;flex-direction:column;margin-top:18px;
+    border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .focus-row{display:flex;align-items:flex-start;gap:14px;padding:14px 16px}
+  .focus-row + .focus-row{border-top:1px solid oklch(0.93 0.006 250 / .05)}
+  .focus-ico{width:34px;height:34px;flex:0 0 auto;border-radius:9px;display:flex;
+    align-items:center;justify-content:center;background:var(--accent-soft);
+    border:1px solid oklch(0.72 0.17 245 / .3);color:var(--accent)}
+  .focus-ico svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.9}
+  .focus-row h4{font-size:clamp(15.5px,1.35vw,18.5px);font-weight:600;color:var(--fg);line-height:1.3}
+  .focus-row p{margin:4px 0 0;font-size:clamp(13px,1.1vw,15.5px);line-height:1.45;color:var(--muted)}
+
+  /* barra de estado / terminal · slide 02 */
+  .statusbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:24px;
+    background:oklch(0.145 0.014 255);border:1px solid oklch(0.93 0.006 250 / .1);
+    border-radius:10px;padding:12px 18px;font-family:var(--font-mono);
+    font-size:clamp(11px,.9vw,13px);color:var(--muted);letter-spacing:.02em}
+  .statusbar .prompt{color:var(--green);font-weight:600}
+  .statusbar .sep{width:1px;height:14px;background:oklch(0.93 0.006 250 / .12)}
+  .statusbar b{color:var(--fg);font-weight:600}
+
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:999px;
+    border:1px solid var(--border);background:var(--surface);font-family:var(--font-mono);
+    font-size:clamp(11px,.85vw,13px);letter-spacing:.03em;color:var(--fg);white-space:nowrap}
+  .pill.green{border-color:oklch(0.87 0.21 165 / .3);background:var(--green-dim);color:var(--green)}
+  .pill svg{width:12px;height:12px;stroke:currentColor}
+
+  /* ---------- Stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;width:100%}
+  @media (max-width:960px){.stats{grid-template-columns:1fr}}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:26px 28px;text-align:center}
+  .stat .num{font-family:var(--font-display);font-weight:700;color:var(--green);
+    font-size:clamp(52px,7vw,92px);line-height:1;letter-spacing:-.02em}
+  .stat .num em{font-style:normal;font-size:.42em;vertical-align:top;color:var(--green);opacity:.75}
+  .stat .lbl{margin-top:10px;font-family:var(--font-mono);font-size:clamp(12px,.9vw,13.5px);
+    letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+  /* ---------- Code ---------- */
+  .m{font-family:var(--font-mono);font-size:.86em;color:var(--green);
+    background:var(--green-dim);border:1px solid oklch(0.87 0.21 165 / .25);
+    padding:1px 6px;border-radius:5px}
+
+  /* ---------- Slide 05 · WebGL & Canvas diagram ---------- */
+  .slide-webgl-canvas{--mint:#00FF88;--violet:#8A2BE2;--violet-soft:color-mix(in oklab,#8A2BE2 62%,white)}
+  .mint-t{color:var(--mint)}
+  .webgl-diagram{display:flex;flex-direction:column;align-items:center;width:100%}
+  .layer{width:min(780px,88%);display:flex;align-items:center;gap:26px;padding:28px 34px;
+    border-radius:18px;background:var(--surface);border:1px solid var(--border);
+    box-shadow:0 22px 48px -20px rgba(0,0,0,.55)}
+  .layer-ico{width:56px;height:56px;flex:0 0 auto;border-radius:14px;display:flex;
+    align-items:center;justify-content:center;border:1px solid}
+  .layer-ico svg{width:28px;height:28px;stroke-width:1.8;stroke:currentColor;fill:none}
+  .layer-ico.mint{color:var(--mint);background:color-mix(in oklab,var(--mint) 12%,transparent);
+    border-color:color-mix(in oklab,var(--mint) 35%,transparent)}
+  .layer-ico.violet{color:var(--violet-soft);background:color-mix(in oklab,var(--violet) 14%,transparent);
+    border-color:color-mix(in oklab,var(--violet) 38%,transparent)}
+  .layer-ico.neutral{color:var(--muted);background:oklch(1 0 0 / .05);border-color:oklch(1 0 0 / .14)}
+  .layer h3{font-family:var(--font-display);font-weight:600;font-size:clamp(21px,1.9vw,27px);letter-spacing:-.01em}
+  .layer-bullet b{color:var(--fg);font-weight:600}
+  .layer-bullet{display:flex;align-items:center;gap:10px;margin-top:9px;font-family:var(--font-mono);
+    font-size:clamp(13px,1.05vw,15px);color:var(--muted);letter-spacing:.01em}
+  .layer-bullet::before{content:"";width:7px;height:7px;border-radius:50%;flex:0 0 auto;
+    background:var(--mint);box-shadow:0 0 12px color-mix(in oklab,var(--mint) 60%,transparent)}
+  .layer.violet .layer-bullet::before{background:var(--violet);box-shadow:0 0 12px color-mix(in oklab,var(--violet) 55%,transparent)}
+  .layer-conn{height:52px;display:flex;flex-direction:column;align-items:center;color:oklch(0.93 0.006 250 / .4)}
+  .layer-conn::before{content:"";width:1px;height:28px;background:linear-gradient(180deg,oklch(0.93 0.006 250 / .35),oklch(0.93 0.006 250 / .05))}
+  .layer-conn svg{width:16px;height:16px;stroke:currentColor;margin-top:2px}
+  @media (max-width:960px){.layer{width:100%}}
+  .code{background:oklch(0.145 0.014 255);border:1px solid oklch(0.87 0.21 165 / .22);
+    border-radius:14px;padding:20px 22px;font-family:var(--font-mono);
+    font-size:clamp(13px,1.15vw,16.5px);line-height:1.7;color:var(--green);overflow-x:auto}
+  .code .c{color:oklch(0.64 0.03 255)}
+  .code .s{color:var(--green)}
+  .code .k{color:var(--accent)}
+  .code .p{color:oklch(0.75 0.02 255)}
+
+  /* ---------- Slide 03 · 3 pilares ---------- */
+  .pillars{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:18px;align-items:stretch;width:100%}
+  @media (max-width:960px){.pillars{grid-template-columns:1fr;gap:28px}
+    .pillars .flow-arrow{transform:rotate(90deg);justify-self:center}}
+  .pillar{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .pillar-head{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+  .pillar-num{font-family:var(--font-mono);font-weight:600;font-size:clamp(12px,.9vw,13px);
+    letter-spacing:.06em;color:var(--accent)}
+  .pillar-title h3{font-family:var(--font-display);font-weight:600;font-size:clamp(17px,1.5vw,21px);letter-spacing:-.01em}
+  .pillar-title span{display:block;margin-top:2px;font-family:var(--font-mono);
+    font-size:clamp(10px,.75vw,11.5px);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .pillar-stack{display:flex;flex-direction:column;gap:10px}
+  .ptile{display:flex;align-items:center;gap:14px;background:var(--surface);
+    border:1px solid var(--border);border-radius:14px;padding:13px 15px;transition:border-color .2s,background .2s}
+  .ptile:hover{border-color:var(--accent);background:var(--surface-2)}
+  .ptile .glyph{display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+    width:44px;height:44px;border-radius:11px;background:oklch(0.97 0.004 250);
+    border:1px solid oklch(0.93 0.006 250 / .16);overflow:hidden;padding:6px}
+  .ptile .glyph img{width:100%;height:100%;object-fit:contain}
+  .ptile h3{font-family:var(--font-display);font-weight:600;font-size:clamp(15px,1.25vw,18px);letter-spacing:-.01em}
+  .ptile .role{margin-top:2px;font-family:var(--font-mono);font-size:clamp(10px,.75vw,11.5px);
+    letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  .pillar-note{margin-top:auto;display:flex;align-items:flex-start;gap:9px;padding:11px 13px;
+    border-radius:10px;border:1px solid oklch(0.87 0.21 165 / .28);background:var(--green-dim);
+    font-size:clamp(12.5px,1.05vw,14.5px);line-height:1.45;color:var(--fg)}
+  .pillar-note svg{width:14px;height:14px;stroke:var(--green);flex:0 0 auto;margin-top:2px}
+  .pillar-note b{color:var(--green);font-weight:600}
+  .flow-arrow{display:flex;align-items:center;justify-content:center;color:oklch(0.93 0.006 250 / .22)}
+  .flow-arrow svg{width:26px;height:26px;stroke:currentColor}
+
+  /* ---------- Slide 04 architecture ---------- */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .arch .node{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:14px 18px;display:flex;align-items:center;gap:14px}
+  .arch .node .nm{font-family:var(--font-mono);font-weight:600;font-size:clamp(15px,1.3vw,18px);color:var(--fg)}
+  .arch .node .nm b{color:var(--accent);font-weight:600}
+  .arch .node .sub{font-family:var(--font-mono);font-size:clamp(11px,.8vw,12.5px);color:var(--muted);margin:0}
+  .arch .line{width:1px;height:22px;background:var(--border);margin-left:26px}
+
+  /* ---------- Slide 05 ---------- */
+  .step-num{font-family:var(--font-mono);font-weight:600;font-size:clamp(12px,.9vw,13px);
+    letter-spacing:.06em;color:var(--accent)}
+  .chip-path{display:inline-flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .chip-path span{font-family:var(--font-mono);font-size:clamp(12px,1vw,14px);
+    background:var(--green-dim);color:var(--green);border:1px solid oklch(0.87 0.21 165 / .3);
+    padding:6px 11px;border-radius:8px;letter-spacing:.01em}
+
+  /* bullets escaneables */
+  .bl{list-style:none;margin-top:14px;display:flex;flex-direction:column;gap:10px}
+  .bl li{position:relative;padding-left:17px;font-size:clamp(15px,1.3vw,18.5px);
+    line-height:1.5;color:var(--muted)}
+  .bl li::before{content:"";position:absolute;left:1px;top:.6em;width:6px;height:6px;
+    border-radius:50%;background:oklch(0.93 0.006 250 / .32)}
+  .bl li b{color:var(--fg);font-weight:600}
+
+  /* editor IDE */
+  .ide{background:#0D0D0D;border:1px solid oklch(1 0 0 / .08);border-radius:12px;
+    overflow:hidden;box-shadow:0 18px 44px -24px rgba(0,0,0,.7);margin-top:16px}
+  .ide-bar{display:flex;align-items:center;gap:6px;padding:7px 12px;
+    border-bottom:1px solid oklch(1 0 0 / .07)}
+  .ide-bar i{width:9px;height:9px;border-radius:50%}
+  .ide-bar .r{background:oklch(0.70 0.2 5)}
+  .ide-bar .y{background:oklch(0.80 0.16 70)}
+  .ide-bar .g{background:oklch(0.87 0.21 165)}
+  .ide-bar span{margin-left:auto;font-family:var(--font-mono);font-size:clamp(10px,.8vw,12px);
+    color:var(--muted);letter-spacing:.02em}
+  .ide .code{background:transparent;border:none;border-radius:0;margin:0;
+    font-size:clamp(11px,.9vw,12.5px);line-height:1.5;padding:12px 14px}
+
+  /* hero + split · slide 06 */
+  .hero-split{display:flex;flex-direction:column;gap:32px;width:100%}
+  .hero-code{display:flex;flex-direction:column;align-items:center;width:100%}
+  .ide-tag{display:inline-flex;align-items:center;gap:9px;margin-bottom:14px;
+    font-family:var(--font-mono);font-size:clamp(12px,.95vw,13.5px);letter-spacing:.04em;color:var(--muted)}
+  .ide-tag i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+  .ide-tag b{color:var(--green);font-weight:600}
+  .hero-code .ide{width:100%;max-width:760px;margin-top:0}
+  .split-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%}
+  @media (max-width:960px){.split-2{grid-template-columns:1fr}}
+
+  /* ---------- Slide 06 tags ---------- */
+  .tags{display:flex;flex-wrap:wrap;gap:10px}
+  .tag{font-family:var(--font-mono);font-size:clamp(12px,.95vw,14px);color:var(--muted);
+    border:1px solid var(--border);border-radius:8px;padding:7px 12px;letter-spacing:.02em}
+  .tag.b{color:var(--accent);border-color:oklch(0.72 0.17 245 / .35);background:var(--accent-soft)}
+
+  /* ---------- Slide 08 monkey → telemetría HUD ---------- */
+  .monkey-split{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;width:100%}
+  @media (max-width:960px){.monkey-split{grid-template-columns:1fr}}
+  .tele{background:oklch(0.13 0.013 255);border:1px solid var(--border);border-radius:16px;
+    overflow:hidden;display:flex;flex-direction:column;
+    box-shadow:0 26px 60px -32px rgba(0,0,0,.85), inset 0 0 0 1px oklch(0.93 0.006 250 / .04)}
+  .tele-head{display:flex;align-items:center;gap:10px;padding:10px 15px;
+    background:oklch(0.155 0.015 255);border-bottom:1px solid oklch(0.93 0.006 250 / .08);
+    font-family:var(--font-mono);font-size:clamp(10px,.75vw,11.5px);letter-spacing:.09em;
+    text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .tele-head .dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 10px var(--green);animation:telePulse 2.2s ease-in-out infinite;flex:0 0 auto}
+  .tele-head b{color:var(--green);font-weight:600}
+  .tele-head .live{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--green)}
+  .tele-head .live::before{content:"";width:6px;height:6px;border-radius:50%;
+    background:var(--green);box-shadow:0 0 8px var(--green)}
+  @keyframes telePulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .tele-canvas{position:relative;aspect-ratio:24/19;overflow:hidden;
+    background:
+      radial-gradient(ellipse 82% 72% at 50% 50%, oklch(0.32 0.02 255 / .10), transparent 72%),
+      repeating-linear-gradient(0deg, oklch(0.93 0.006 250 / .016) 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, oklch(0.93 0.006 250 / .016) 0 1px, transparent 1px 26px)}
+  .tele-canvas svg{position:absolute;inset:0;width:100%;height:100%}
+  .tele-bg{opacity:.16}
+  .tele-hud{opacity:.9}
+  .tele-plot text.node-label{font-family:var(--font-mono);font-size:4.8px;
+    letter-spacing:.16em;fill:oklch(0.80 0.16 70);opacity:.9}
+
+  .tele-badge{position:absolute;display:flex;flex-direction:column;gap:2px;
+    padding:7px 11px;border-radius:9px;background:oklch(0.16 0.015 255 / .58);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid oklch(0.93 0.006 250 / .14);
+    box-shadow:0 8px 24px -12px rgba(0,0,0,.7)}
+  .tele-badge .k{font-family:var(--font-mono);font-size:clamp(9px,.68vw,10.5px);
+    letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .tele-badge .v{font-family:var(--font-mono);font-weight:600;font-size:clamp(14px,1.1vw,17px);
+    letter-spacing:.02em;color:var(--fg)}
+  .tele-badge .v em{font-style:normal;font-size:.62em;color:var(--green);margin-left:4px;font-weight:500}
+
+  .tele-console{display:flex;align-items:center;gap:11px;padding:10px 15px;
+    font-family:var(--font-mono);font-size:clamp(11px,.8vw,12.5px);line-height:1.6;
+    color:var(--muted);background:oklch(0.11 0.011 255);border-top:1px solid oklch(0.93 0.006 250 / .1);
+    white-space:nowrap;overflow-x:auto}
+  .tele-console b{color:var(--green);font-weight:500}
+  .tele-console .p{color:var(--green);font-weight:600;flex:0 0 auto}
+  .tele-console .ok{margin-left:auto;flex:0 0 auto;color:var(--green);font-size:.82em;
+    letter-spacing:.08em;border:1px solid oklch(0.87 0.21 165 / .3);background:var(--green-dim);
+    padding:2px 8px;border-radius:6px}
+
+  /* slide 08 · reporte de estado (columna izquierda) */
+  .monkey-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .stress-title{display:flex;align-items:center;gap:11px}
+  .stress-ico{width:21px;height:21px;flex:0 0 auto;stroke:oklch(0.74 0.13 302);fill:none;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .stress-copy{line-height:1.72}
+  .checklist{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:12px}
+  .checklist li{display:flex;align-items:center;gap:11px;font-size:clamp(15px,1.3vw,18px);line-height:1.4;color:var(--fg)}
+  .check-ico{width:22px;height:22px;flex:0 0 auto;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    background:var(--green-dim);border:1px solid oklch(0.87 0.21 165 / .3);color:var(--green)}
+  .check-ico svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  .kpi{background:oklch(0.155 0.014 255);border:1px solid oklch(0.93 0.006 250 / .12);
+    border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px}
+  .kpi-num{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,2.5vw,40px);line-height:1;color:var(--green);letter-spacing:-.02em}
+  .kpi-lbl{font-family:var(--font-mono);font-size:clamp(10.5px,.8vw,12px);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+
+  /* ---------- Slide 08 bugs ---------- */
+  .bug-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%}
+  @media (max-width:960px){.bug-grid{grid-template-columns:1fr}}
+  .bug{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px}
+  .bug-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .bug-id{font-family:var(--font-mono);font-weight:600;font-size:clamp(12px,.9vw,13px);
+    letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  .sev{font-family:var(--font-mono);font-weight:600;font-size:clamp(11px,.8vw,12.5px);
+    letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+  .sev.high{color:var(--red);background:var(--red-dim);border:1px solid oklch(0.70 0.2 5 / .35)}
+  .sev.med{color:var(--amber);background:var(--amber-dim);border:1px solid oklch(0.80 0.16 70 / .35)}
+  .bug-row{display:flex;gap:14px;padding:13px 0;border-top:1px solid oklch(0.93 0.006 250 / .07)}
+  .bug-row .k{flex:0 0 96px;font-family:var(--font-mono);font-size:clamp(11px,.8vw,12px);
+    letter-spacing:.05em;text-transform:uppercase;color:var(--accent);padding-top:3px}
+  .bug-row .v{font-size:clamp(15.5px,1.35vw,19.5px);line-height:1.5;color:var(--fg)}
+  .bug-row .v b{color:var(--green);font-weight:500}
+
+  /* ---------- Slide 09 frictions ---------- */
+  .fric{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%}
+  @media (max-width:960px){.fric{grid-template-columns:1fr}}
+  .fric-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px}
+  .fric-card h3{font-family:var(--font-display);font-weight:600;font-size:clamp(19px,1.7vw,24px);
+    letter-spacing:-.01em;margin-top:6px}
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;padding-bottom:12px}
+  .cmp .side{border-radius:10px;padding:12px 14px;font-size:clamp(14px,1.2vw,17px);line-height:1.4}
+  .cmp .side .lab{display:block;font-family:var(--font-mono);font-size:clamp(10.5px,.8vw,12px);
+    letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}
+  .cmp .ok{background:var(--green-dim);border:1px solid oklch(0.87 0.21 165 / .3);color:var(--fg)}
+  .cmp .ok .lab{color:var(--green)}
+  .cmp .ko{background:var(--red-dim);border:1px solid oklch(0.70 0.2 5 / .35);color:var(--fg)}
+  .cmp .ko .lab{color:var(--red)}
+  .fric-row{padding:15px 0;border-top:1px solid oklch(0.93 0.006 250 / .07)}
+  .fric-row .k{display:block;font-family:var(--font-mono);font-size:clamp(11px,.8vw,12px);
+    letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-bottom:7px}
+  .fric-row .v{display:block;width:100%;font-size:clamp(15px,1.3vw,18.5px);line-height:1.55;color:var(--fg)}
+  .fric-row.rec .k{color:var(--green)}
+  .fric-row.rec .v{color:var(--green)}
+
+  /* ---------- Slide 10 pipeline ---------- */
+  .pipeline{display:flex;flex-wrap:wrap;align-items:stretch;justify-content:center;gap:0;width:100%}
+  .pipe{display:flex;align-items:center;flex-wrap:wrap;justify-content:center}
+  .pipe-step{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:14px 18px;text-align:center;min-width:132px}
+  .pipe-step .t{font-family:var(--font-mono);font-weight:600;font-size:clamp(13px,1.1vw,15.5px);color:var(--fg)}
+  .pipe-step .d{margin-top:4px;font-size:clamp(11.5px,.9vw,13px);color:var(--muted)}
+  .pipe-step.now{border-color:oklch(0.72 0.17 245 / .5);background:var(--accent-soft)}
+  .pipe-step.now .t{color:var(--accent)}
+  .pipe-step .pipe-logo{display:inline-flex;align-items:center;justify-content:center;
+    width:38px;height:38px;border-radius:9px;background:oklch(0.97 0.004 250);
+    border:1px solid oklch(0.93 0.006 250 / .16);overflow:hidden;padding:5px;margin-bottom:10px}
+  .pipe-step .pipe-logo img{width:100%;height:100%;object-fit:contain}
+  .pipe-step .pipe-logo svg{width:100%;height:100%;stroke:oklch(0.55 0.02 255);fill:none}
+  .pipe-arrow{display:flex;align-items:center;padding:0 8px;color:var(--muted)}
+  .pipe-arrow svg{width:18px;height:18px;stroke:currentColor}
+  .road{display:grid;grid-template-columns:1fr 1fr;gap:22px;width:100%;margin-top:30px}
+  @media (max-width:960px){.road{grid-template-columns:1fr}}
+  .road .item{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px}
+  .road .item .n{font-family:var(--font-mono);font-weight:600;color:var(--accent);
+    font-size:clamp(12px,.9vw,13px);letter-spacing:.07em}
+  .road .item h4{font-family:var(--font-display);font-weight:600;font-size:clamp(19px,1.7vw,24px);margin-top:8px}
+  .road .item p{font-size:clamp(15.5px,1.3vw,19px);line-height:1.5;color:var(--muted);margin-top:8px}
+
+  .cta{margin-top:38px;display:inline-flex;align-items:center;gap:12px;
+    background:var(--accent);color:oklch(0.16 0.013 255);font-family:var(--font-display);
+    font-weight:600;font-size:clamp(17px,1.5vw,21px);letter-spacing:.02em;
+    padding:16px 32px;border-radius:12px;transition:background .2s,transform .15s}
+  .cta:hover{background:oklch(0.78 0.17 245)}
+  .cta:active{transform:scale(.98)}
+  .cta svg{width:20px;height:20px;stroke:currentColor}
+
+  /* ---------- Navigation ---------- */
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:40;height:3px;background:oklch(0.93 0.006 250 / .08)}
+  .topbar i{display:block;height:100%;width:100%;background:var(--accent);
+    transform:scaleX(0);transform-origin:0 50%;transition:transform .5s var(--ease)}
+  .navbar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:40;
+    display:flex;align-items:center;gap:10px;padding:8px;border-radius:999px;
+    background:oklch(0.19 0.018 255 / .85);backdrop-filter:blur(8px);border:1px solid var(--border)}
+  .nav-btn{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;
+    border-radius:50%;color:var(--muted);transition:color .2s,background .2s}
+  .nav-btn:hover{color:var(--fg);background:var(--accent-soft)}
+  .nav-btn svg{width:20px;height:20px;stroke:currentColor}
+  .nav-sep{width:1px;height:22px;background:var(--border)}
+  .nav-count{font-family:var(--font-mono);font-size:clamp(11px,.85vw,13px);letter-spacing:.04em;
+    color:var(--muted);padding:0 6px;min-width:180px;text-align:center;white-space:nowrap}
+  .nav-count b{color:var(--fg);font-weight:600}
+  .nav-hint{position:fixed;right:24px;bottom:26px;z-index:40;font-family:var(--font-mono);
+    font-size:clamp(10px,.75vw,11.5px);letter-spacing:.05em;color:var(--muted);opacity:.7}
+  .kbd{display:inline-block;border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;
+    padding:1px 6px;margin:0 2px;background:var(--surface)}
+
+  /* ---------- Notes panel ---------- */
+  .notes-panel{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:50;
+    width:min(760px,92vw);max-height:44vh;overflow-y:auto;background:oklch(0.20 0.02 255 / .96);
+    border:1px solid var(--border);border-radius:16px;padding:22px 24px;box-shadow:0 18px 60px rgba(0,0,0,.5);
+    display:none}
+  .notes-panel.open{display:block}
+  .notes-panel header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .notes-panel h2{font-family:var(--font-mono);font-size:clamp(12px,.9vw,13px);letter-spacing:.06em;
+    text-transform:uppercase;color:var(--accent);font-weight:600}
+  .notes-panel .close{width:34px;height:34px;border-radius:8px;color:var(--muted)}
+  .notes-panel .close:hover{color:var(--fg);background:var(--accent-soft)}
+  .notes-panel .close svg{width:16px;height:16px;stroke:currentColor}
+  .notes-panel p{font-size:clamp(14px,1.15vw,16px);line-height:1.6;color:var(--fg)}
+  .notes-panel p+p{margin-top:12px}
+
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+  @media (max-width:960px){
+    .wrap{max-height:94vh}
+    .slide{overflow-y:auto}
+    .nav-hint{display:none}
+    .cover-scan .codefeed{display:none}
+  }
+  @media (max-height:820px){
+    .slide{overflow-y:auto}
+    .wrap{max-height:96vh}
+    .head{margin-bottom:22px}
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck" tabindex="-1" data-od-id="deck">
+  <div class="track" id="track">
+
+    <!-- ============ 01 · PORTADA ============ -->
+    <section class="slide theme-hero-dark" data-screen-label="01 Portada" data-od-id="slide-portada">
+      <div class="cover-scan" aria-hidden="true">
+        <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div>
+        <div class="cross"></div><div class="sweep"></div><div class="scanlines"></div>
+        <div class="codefeed" aria-hidden="true">const renderer = new <b>ViewportRenderer</b>();
+gl.clearColor(0,0,0,1);
+const roi = await <b>tools.freehand</b>.draw(points);
+console.<b>assert</b>(roi.area &gt; 0);</div>
+      </div>
+      <div class="wrap cover-body">
+        <span class="cover-badge"><i></i>Lead QA Automation · Code Challenge</span>
+        <h1 class="h-hero cover-title" data-od-id="portada-titulo">Eden PACS <span class="accent-t">·</span> QA Automation <span class="green-t">Challenge</span></h1>
+        <p class="cover-sub">Estrategia, Arquitectura y Hallazgos Clínicos</p>
+        <div class="cover-meta">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6"/><path d="M4 10h16"/></svg>Project Patriot</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>MPR Viewer · Cornerstone3D</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 12c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8c2.2 0 4.2.9 5.7 2.3"/><path d="M20 4v4h-4"/></svg>Davo · Software Engineer in Test</span>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>Buenas. Esta es la síntesis del Code Challenge para Lead QA Automation en Eden PACS. La tesis de la presentación: automatizar no basta; la ingeniería de calidad sobre un visor médico exige cuestionar la arquitectura, medir el comportamiento real del renderizado y traducir los hallazgos en decisiones clínicamente seguras.</p>
+        <p>En diez diapositivas recorremos: el contexto del reto, el stack, la arquitectura del framework Project Patriot, la solución técnica que destraba la interacción con el menú circular en WebGL, la cobertura real de la suite, el stress test sobre Freehand ROI, los defectos críticos encontrados, el análisis de fricción cognitiva y la estrategia de CI/CD con los siguientes pasos.</p>
+        <p>Al final, la pregunta que dejamos sobre la mesa no es cuántos tests escribí, sino qué defectos encontré que un radiólogo habría sufrido en producción.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 02 · CONTEXTO Y ENFOQUE ============ -->
+    <section class="slide theme-dark" data-screen-label="02 Contexto y enfoque" data-od-id="slide-contexto">
+      <div class="wrap">
+        <header class="head">
+          <span class="kicker">02 · <b>Contexto</b> del reto</span>
+          <h2 class="h-section" data-od-id="contexto-titulo">Más que automatizar:<br>someter el visor a prueba</h2>
+        </header>
+        <div class="grid grid-2 grid-asym">
+          <div class="card card-mute" data-od-id="objetivo-card">
+            <span class="card-label">Objetivo del reto</span>
+            <h3 class="card-title">Estabilidad geométrica y funcional del visor MPR</h3>
+            <p>Validar que las mediciones del visor sean precisas y repetibles en el flujo clínico real.</p>
+            <div class="estabilidad" data-od-id="estabilidad">
+              <div class="est-row" data-od-id="micro-geometrica">
+                <span class="focus-ico mint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21l7.5-7.5M7 21l2-2M11 21l2-2M15 21l2-2M19 21l2-2M21 3l-7.5 7.5"/></svg></span>
+                <div>
+                  <h4>Geométrica</h4>
+                  <p>Precisión y reproducibilidad en el lienzo</p>
+                </div>
+              </div>
+              <div class="est-row" data-od-id="micro-funcional">
+                <span class="focus-ico mint" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+                <div>
+                  <h4>Funcional</h4>
+                  <p>Flujos E2E repetibles, sin estado fantasma</p>
+                </div>
+              </div>
+            </div>
+            <div class="objetivo-pills">
+              <span class="pill">Visor DICOM</span><span class="pill">Cornerstone3D</span><span class="pill">WebGL</span>
+            </div>
+          </div>
+          <div class="card card-hero card-col" data-od-id="enfoque-card">
+            <span class="card-label">Enfoque Lead QA</span>
+            <h3 class="card-title">No solo automatizar: entender y desafiar</h3>
+            <div class="tercios" data-od-id="focus-rows">
+              <div class="tercio" data-od-id="focus-arquitectura">
+                <span class="focus-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l-6 6 6 6"/><path d="M15 6l6 6-6 6"/></svg></span>
+                <div>
+                  <h4><span class="verb">Cuestionar</span>la arquitectura de la UI</h4>
+                  <p>No aceptar la interfaz como caja negra: localizar dónde vive la lógica (canvas vs. SVG).</p>
+                </div>
+              </div>
+              <div class="tercio" data-od-id="focus-ux">
+                <span class="focus-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                <div>
+                  <h4><span class="verb">Evaluar</span>la UX clínica</h4>
+                  <p>Cada fricción del radiólogo es un riesgo en el flujo de lectura.</p>
+                </div>
+              </div>
+              <div class="tercio" data-od-id="focus-limite">
+                <span class="focus-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+                <div>
+                  <h4><span class="verb">Someter</span>el motor a casos límite</h4>
+                  <p>Forzar el renderizado más allá del camino feliz para medir su límite real.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="statusbar" data-od-id="statusbar">
+          <span class="prompt" aria-hidden="true">&gt;_</span>
+          <span>pacs.evacenter.com/v2/mpr</span>
+          <span class="sep" aria-hidden="true"></span>
+          <span>Axial · Coronal · Sagittal · 3D</span>
+          <span class="sep" aria-hidden="true"></span>
+          <span><b>4 viewports sincronizados</b> · Cornerstone3D</span>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>El reto pedía validar la estabilidad del visor MPR de Eden PACS: un visor DICOM que renderiza cuatro viewports sincronizados — Axial, Coronal, Sagittal y una vista 3D — sobre Cornerstone3D y WebGL.</p>
+        <p>Hablamos de dos estabilidades. La geométrica: que las mediciones sean precisas y no dependan del estado previo de la interfaz. La funcional: que los flujos end-to-end de medición — abrir menú circular, seleccionar herramienta, dibujar, validar la anotación — sean repetibles.</p>
+        <p>Pero el enfoque de un Lead QA no es solo automatizar el happy path: es cuestionar la arquitectura de la UI, evaluar la UX desde la perspectiva del radiólogo y someter el motor de renderizado a casos límite que un flujo nominal jamás tocaría. Esa es la diferencia entre una suite que pasa y una suite que informa.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 03 · STACK ============ -->
+    <section class="slide theme-elevated" data-screen-label="03 Stack tecnológico" data-od-id="slide-stack">
+      <div class="wrap">
+        <header class="head">
+          <span class="kicker">03 · <b>Stack</b> tecnológico</span>
+          <h2 class="h-section" data-od-id="stack-titulo">Herramientas estándar, decisiones deliberadas</h2>
+          <p class="lead">Elegir ecosistemas convencionales para que la mantenibilidad no dependa del ingenio de una persona.</p>
+        </header>
+        <div class="pillars" data-od-id="stack-pillars">
+          <div class="pillar" data-od-id="pilar-motor">
+            <div class="pillar-head">
+              <span class="pillar-num">01</span>
+              <div class="pillar-title">
+                <h3>Motor E2E</h3>
+                <span>Automatización de navegador</span>
+              </div>
+            </div>
+            <div class="pillar-stack">
+              <div class="ptile" data-od-id="tech-python"><span class="glyph"><img src="assets/logos/python.webp" alt="" loading="lazy"></span><div><h3>Python 3.11+</h3><span class="role">Lenguaje</span></div></div>
+              <div class="ptile" data-od-id="tech-playwright"><span class="glyph"><img src="assets/logos/playwright.png" alt="" loading="lazy"></span><div><h3>Playwright · Async</h3><span class="role">Core automation</span></div></div>
+              <div class="ptile" data-od-id="tech-behave"><span class="glyph"><img src="assets/logos/behave.png" alt="" loading="lazy"></span><div><h3>Behave · Gherkin</h3><span class="role">Framework BDD</span></div></div>
+            </div>
+            <div class="pillar-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg><span>API asíncrona de Playwright para renderizado WebGL pesado</span></div>
+          </div>
+
+          <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+
+          <div class="pillar" data-od-id="pilar-datos">
+            <div class="pillar-head">
+              <span class="pillar-num">02</span>
+              <div class="pillar-title">
+                <h3>Datos y Visibilidad</h3>
+                <span>Reportería y configuración</span>
+              </div>
+            </div>
+            <div class="pillar-stack">
+              <div class="ptile" data-od-id="tech-allure"><span class="glyph"><img src="assets/logos/allure.png" alt="" loading="lazy"></span><div><h3>Allure Reports</h3><span class="role">Reportería + evidencia</span></div></div>
+              <div class="ptile" data-od-id="tech-yaml"><span class="glyph"><img src="assets/logos/pyyaml.png" alt="" loading="lazy"></span><div><h3>PyYAML</h3><span class="role">Config multi-team</span></div></div>
+            </div>
+            <div class="pillar-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg><span>Gherkin como especificación ejecutable</span></div>
+          </div>
+
+          <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+
+          <div class="pillar" data-od-id="pilar-cicd">
+            <div class="pillar-head">
+              <span class="pillar-num">03</span>
+              <div class="pillar-title">
+                <h3>Pipeline CI/CD</h3>
+                <span>Ejecución y entrega</span>
+              </div>
+            </div>
+            <div class="pillar-stack">
+              <div class="ptile" data-od-id="tech-docker"><span class="glyph"><img src="assets/logos/docker.png" alt="" loading="lazy"></span><div><h3>Docker</h3><span class="role">Ejecución CI</span></div></div>
+              <div class="ptile" data-od-id="tech-ghactions"><span class="glyph"><img src="assets/logos/github.svg" alt="" loading="lazy"></span><div><h3>GitHub Actions</h3><span class="role">CI · Tests en cada PR</span></div></div>
+            </div>
+            <div class="pillar-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg><span>Suite completa en cada pull request</span></div>
+          </div>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>El stack es el estándar de la industria, deliberadamente. Python 3.11 como lenguaje; Playwright en su API asíncrona para control de navegador — crucial para un renderizado WebGL pesado y para no bloquear el event loop.</p>
+        <p>Behave con Gherkin aporta la capa BDD: cada caso es una especificación ejecutable. Allure da reportería con evidencia adjunta en cada paso — screenshot, valores de aserción e información de contexto. PyYAML gestiona la configuración multi-entorno y Docker la ejecución contenedorizada.</p>
+        <p>Elegir herramientas convencionales no es conservadurismo: es que la mantenibilidad de la suite no dependa del ingenio de una persona, sino de ecosistemas con comunidad, documentación y soporte.</p>
+        <p>GitHub Actions orquesta la ejecución en CI: cada pull request dispara un job contenedorizado que construye la imagen Docker, corre la suite completa y publica el reporte de Allure como artefacto.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 04 · ARQUITECTURA ============ -->
+    <section class="slide theme-dark" data-screen-label="04 Arquitectura" data-od-id="slide-arquitectura">
+      <div class="wrap">
+        <header class="head">
+          <span class="kicker">04 · <b>Arquitectura</b> del framework</span>
+          <h2 class="h-section" data-od-id="arquitectura-titulo">Project Patriot: una plataforma, no un script</h2>
+        </header>
+        <div class="grid grid-2">
+          <div>
+            <div class="arch" data-od-id="arch-diagrama">
+              <div class="node"><span class="nm">core/</span><span class="sub">BasePage · Config · Driver · CLI</span></div>
+              <div class="line"></div>
+              <div class="node"><span class="nm">teams/&lt;team&gt;/</span><span class="sub">config.yaml · features/ · pages/</span></div>
+              <div class="line"></div>
+              <div class="node"><span class="nm">results/</span><span class="sub">Allure · videos · evidencia</span></div>
+            </div>
+            <div style="margin-top:18px;display:flex;flex-wrap:wrap;gap:8px">
+              <span class="pill">PATRIOT_BASE_URL</span><span class="pill">PATRIOT_BROWSER</span><span class="pill">Entornos por overrides</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <pre class="code" data-od-id="code-config"><span class="c"># tests/webui/teams/eden/config.yaml</span>
+<span class="k">team_name:</span> <span class="p">eden</span>
+<span class="k">base_url:</span> <span class="s">https://pacs.evacenter.com/v2/mpr</span>
+<span class="k">browser:</span> <span class="p">chromium</span>
+<span class="k">headless:</span> <span class="p">false</span>
+<span class="k">timeout:</span> <span class="p">30000</span></pre>
+            <div class="grid grid-2" style="gap:14px">
+              <div class="card" style="padding:18px 20px" data-od-id="pom-card">
+                <span class="card-label">Patrón</span>
+                <h3 class="card-title" style="font-size:clamp(17px,1.5vw,21px)">POM estricto</h3>
+                <p style="font-size:clamp(14px,1.2vw,17px)">Selectores centralizados en <b>MprViewerPage</b>.</p>
+              </div>
+              <div class="card" style="padding:18px 20px" data-od-id="gherkin-card">
+                <span class="card-label">Separación total</span>
+                <h3 class="card-title" style="font-size:clamp(17px,1.5vw,21px)">Gherkin ↔ DOM</h3>
+                <p style="font-size:clamp(14px,1.2vw,17px)">Steps = <b>thin wrappers</b> + evidencia.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>Project Patriot no es un script suelto: es una plataforma. La arquitectura es escalable a múltiples equipos: cada equipo vive en tests/webui/teams/&lt;team&gt;/ con su propio config.yaml — URLs, browser y timeouts — y overrides por variables de entorno con prefijo PATRIOT_.</p>
+        <p>Sobre la capa de equipos, el core reutilizable: base_page, drivers y la lógica de ejecución CLI. Los patrones son estrictos: Page Object Model puro — todos los selectores viven en la página, como MprViewerPage — y separación total entre el comportamiento en Gherkin y la manipulación del DOM: los steps son wrappers finos que llaman a la página y adjuntan evidencia.</p>
+        <p>Agregar una herramienta nueva es tocar tres archivos con responsabilidades separadas; no se acopla lógica en una sola clase.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 05 · WEBGL Y CANVAS ============ -->
+    <section class="slide theme-elevated slide-webgl-canvas" data-screen-label="05 WebGL y Canvas" data-od-id="slide-webgl-canvas">
+      <div class="wrap">
+        <header class="head" style="text-align:center;margin-bottom:60px">
+          <span class="kicker" style="justify-content:center">05 · <b>Estrategia de pruebas</b></span>
+          <h2 class="h-section" data-od-id="webgl-canvas-titulo">Estrategia de pruebas para <span class="mint-t">WebGL</span> y Canvas</h2>
+        </header>
+        <div class="webgl-diagram" data-od-id="webgl-diagrama">
+          <div class="layer" data-od-id="capa-svg">
+            <span class="layer-ico mint" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M12 7L4 16l8 9M20 7l8 9-8 9"/></svg></span>
+            <div>
+              <h3>SVG Anotaciones</h3>
+              <p class="layer-bullet"><b>Workaround:</b> inyección CSS (<span class="m">pointer-events: none</span>) para liberar el DOM</p>
+              <p class="layer-bullet"><b>Estrategia:</b> aserciones estrictas sobre <span class="m">data-annotation-uid</span></p>
+            </div>
+          </div>
+          <div class="layer-conn" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v12M7 12l5 5 5-5"/></svg></div>
+          <div class="layer violet" data-od-id="capa-webgl">
+            <span class="layer-ico violet" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 4l10 6v12L16 28 6 22V10z"/><path d="M6 10l10 6 10-6M16 16v12"/></svg></span>
+            <div>
+              <h3>Estado Interno WebGL</h3>
+              <p class="layer-bullet"><b>Validación matemática:</b> inyección JS en <span class="m">window.cornerstoneTools</span></p>
+              <p class="layer-bullet"><b>VRT:</b> descartada temporalmente · flakiness por anti-aliasing en Linux CI</p>
+            </div>
+          </div>
+          <div class="layer-conn" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v12M7 12l5 5 5-5"/></svg></div>
+          <div class="layer" data-od-id="capa-dicom">
+            <span class="layer-ico neutral" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h6l4-8 6 16 4-8h4"/></svg></span>
+            <div>
+              <h3>Límites del E2E</h3>
+              <p class="layer-bullet"><b>Sub-píxel DICOM</b> y <b>Memory Leaks</b> → pruebas de componentes y monitoreo</p>
+              <p class="layer-bullet"><b>Objetivo:</b> blindar la velocidad del pipeline</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>El canvas de Cornerstone3D es opaco para el DOM: los píxeles los dibuja la GPU y no se pueden inspeccionar. Por eso la estrategia de automatización arranca con una decisión de capas.</p>
+        <p>A nivel DOM, implementado: descubrimos que, aunque la imagen es WebGL puro, las mediciones y los textos se renderizan como overlays SVG con g[data-annotation-uid]. Asertamos sobre ese DOM — estabilidad en CI/CD sin la fragilidad de comparar imágenes del canvas — y evadimos la interceptación de eventos con inyección dinámica de CSS, pointer-events: none.</p>
+        <p>Enfoques alternativos: la validación de estado interno, inyectando JavaScript para consultar window.cornerstoneTools, será la siguiente iteración para precisión matemática de coordenadas. La regresión visual se evaluó para el pixel-perfect, pero se descartó temporalmente: el anti-aliasing de las GPUs varía entre entornos de CI y la vuelve frágil.</p>
+        <p>Fuera del alcance E2E: la validación sub-píxel de los datos DICOM y las pruebas de estrés de fugas de memoria en GPU se delegan a pruebas de componentes de bajo nivel y monitoreo de performance, priorizando velocidad y confiabilidad de la suite.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 06 · BARRERA WEBGL ============ -->
+    <section class="slide theme-hero-dark" data-screen-label="06 Barrera WebGL" data-od-id="slide-webgl">
+      <div class="wrap">
+        <header class="head" style="text-align:center">
+          <span class="kicker" style="justify-content:center">06 · <b>Solución técnica</b></span>
+          <h2 class="h-section" data-od-id="webgl-titulo">El canvas que interceptaba <span class="accent-t">todo</span></h2>
+          <p class="lead" style="margin-left:auto;margin-right:auto">Cornerstone3D renderiza sobre <b>&lt;canvas&gt;</b> que capturan los eventos de puntero: el clic nunca llegaba al menú circular.</p>
+        </header>
+        <div class="hero-split">
+          <div class="hero-code" data-od-id="hero-code">
+            <span class="ide-tag"><i aria-hidden="true"></i>Solución: <b>Liberación del DOM</b></span>
+            <div class="ide" data-od-id="ide-editor">
+              <div class="ide-bar" aria-hidden="true"><i class="r"></i><i class="y"></i><i class="g"></i><span>mpr_viewer.py</span></div>
+              <pre class="code" data-od-id="code-pointer">await page.add_style_tag(
+  content=<span class="s">"canvas { pointer-events: none !important; }"</span>
+)
+try:
+    await page.mouse.click(x, y)
+finally:
+    await canvas_style.remove()</pre>
+            </div>
+          </div>
+          <div class="split-2">
+            <div class="card" data-od-id="problema-card">
+              <span class="step-num">01 · El Problema</span>
+              <h3 class="card-title">Eventos secuestrados</h3>
+              <p>El canvas de Cornerstone3D <b>secuestra los pointer events</b>: un clic que debería abrir el menú circular termina en el canvas.</p>
+              <p>El menú radial usa <span class="m">transform: rotate/skew</span>, lo que hace <b>inestables las coordenadas absolutas</b> del layout.</p>
+            </div>
+            <div class="card" data-od-id="robustez-card">
+              <span class="step-num">02 · La Robustez</span>
+              <h3 class="card-title">Firma única del SVG</h3>
+              <p>Cada herramienta se identifica por la <b>firma única del atributo <span class="m">d</span> del <span class="m">&lt;path&gt;</span></b>, inmune a las coordenadas absolutas del layout.</p>
+              <div class="chip-path"><span>d="M4 9a1 1 0 0 1 1-1h14"</span><span>Ruler</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>El reto técnico más duro fue el menú circular. Cornerstone3D renderiza en canvas que interceptan todos los eventos de puntero: un click normal de Playwright aterriza en el canvas y nunca llega al menú.</p>
+        <p>La solución: inyectar CSS dinámicamente que evada punteros en los canvas — canvas { pointer-events: none !important } — dentro de un try/finally para no dejar estado residual en el DOM.</p>
+        <p>Pero además, los ítems del submenú usan transformaciones CSS rotate/skew que vuelven inestables las coordenadas: en vez de clickear por posición, identificamos cada herramienta por la firma única del atributo d del SVG path. La regla, por ejemplo, empieza con M4 9a1 1 0 0 1 1-1h14. Resultado: selección determinista, sin depender del layout.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 06 · COBERTURA ============ -->
+    <section class="slide theme-elevated" data-screen-label="07 Cobertura" data-od-id="slide-cobertura">
+      <div class="wrap">
+        <header class="head">
+          <span class="kicker">07 · <b>Cobertura</b> de la suite</span>
+          <h2 class="h-section" data-od-id="cobertura-titulo">Números reales, verificables en Allure</h2>
+        </header>
+        <div class="stats" data-od-id="stats">
+          <div class="stat" data-od-id="stat-escenarios"><div class="num">9</div><div class="lbl">Escenarios E2E</div></div>
+          <div class="stat" data-od-id="stat-pasos"><div class="num">56</div><div class="lbl">Pasos validados</div></div>
+          <div class="stat" data-od-id="stat-passing"><div class="num">100<em>%</em></div><div class="lbl">Passing rate</div></div>
+        </div>
+        <div style="margin-top:26px">
+          <span class="card-label" style="color:var(--green)">Casos de alto impacto clínico</span>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
+            <span class="pill green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>Persistencia en Scroll (cortes)</span>
+            <span class="pill green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>Persistencia en Zoom</span>
+            <span class="pill green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>Independencia Cross-Plane</span>
+          </div>
+          <div style="margin-top:16px" class="tags" data-od-id="tags-suite">
+            <span class="tag b">@smoke</span><span class="tag b">@measurement</span><span class="tag b">@toolswitch</span>
+            <span class="tag b">@zoom</span><span class="tag b">@persist</span><span class="tag b">@menu</span>
+            <span class="tag b">@zerodistance</span><span class="tag b">@crossplane</span><span class="tag b">@scroll</span>
+          </div>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>Los números son reales, verificables en el reporte de Allure y en TEST_CASES.md: nueve escenarios end-to-end, 56 pasos validados y un 100 % de passing rate.</p>
+        <p>La suite no solo cubre el camino feliz: cubre los casos de alto impacto clínico — persistencia de anotaciones al navegar cortes con scroll, persistencia tras operaciones de zoom, independencia entre planos — y edge cases como el doble clic en distancia cero, que no debe crear mediciones fantasma.</p>
+        <p>Cada escenario deja evidencia: screenshot por paso y aserción explícita. El passing rate es honesto: preferimos una suite que reporte un fallo claro a una que pase de más.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 07 · MONKEY TESTING ============ -->
+    <section class="slide theme-dark" data-screen-label="08 Monkey testing" data-od-id="slide-monkey">
+      <div class="wrap">
+        <header class="head">
+          <span class="kicker">08 · <b>Pruebas de estrés</b></span>
+          <h2 class="h-section" data-od-id="monkey-titulo">Freehand ROI: el motor bajo presión</h2>
+        </header>
+        <div class="monkey-split">
+          <div class="monkey-col">
+            <div class="card" data-od-id="monkey-caso">
+              <span class="card-label">Caso de estudio</span>
+              <h3 class="card-title stress-title">
+                <svg class="stress-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+                Trazo libre · auto-intersecciones
+              </h3>
+              <p class="stress-copy">Se forzó el motor trazando <b>polígonos complejos con múltiples auto-intersecciones</b> — algo que un radiólogo rara vez hace, pero que el renderizador debe soportar.</p>
+            </div>
+            <div class="card" data-od-id="monkey-resultado">
+              <span class="card-label" style="color:var(--green)">Resultado · CornerstoneTools</span>
+              <ul class="checklist" data-od-id="monkey-checklist">
+                <li><span class="check-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7"/></svg></span>Polígono cerrado sin colapso</li>
+                <li><span class="check-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7"/></svg></span>Área matemática calculada</li>
+                <li><span class="check-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7"/></svg></span>Densidad HU reportada</li>
+              </ul>
+              <div class="kpi-grid" data-od-id="monkey-kpis">
+                <div class="kpi"><span class="kpi-num">0</span><span class="kpi-lbl">Crash</span></div>
+                <div class="kpi"><span class="kpi-num">0</span><span class="kpi-lbl">Excepciones</span></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="tele" data-od-id="monkey-visual">
+              <div class="tele-head">
+                <span class="dot" aria-hidden="true"></span>
+                <span>Freehand ROI · <b>Telemetría</b></span>
+                <span class="live">Live</span>
+              </div>
+              <div class="tele-canvas">
+                <svg class="tele-bg" viewBox="0 0 240 190" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="teleField" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#c9d6e6" stop-opacity=".14"/>
+                      <stop offset="55%" stop-color="#8fa3bb" stop-opacity=".08"/>
+                      <stop offset="100%" stop-color="#5f7390" stop-opacity="0"/>
+                    </radialGradient>
+                    <filter id="teleBlur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4.5"/></filter>
+                  </defs>
+                  <rect width="240" height="190" fill="url(#teleField)"/>
+                  <g filter="url(#teleBlur)">
+                    <ellipse cx="120" cy="95" rx="74" ry="62" fill="none" stroke="#aebfd2" stroke-width="7" opacity=".55"/>
+                    <ellipse cx="120" cy="95" rx="52" ry="44" fill="#7e93ac" opacity=".32"/>
+                    <ellipse cx="98" cy="82" rx="22" ry="17" fill="#b9c9dc" opacity=".30"/>
+                    <ellipse cx="146" cy="108" rx="24" ry="18" fill="#93a7c0" opacity=".28"/>
+                    <ellipse cx="120" cy="120" rx="30" ry="14" fill="#c3d2e2" opacity=".20"/>
+                  </g>
+                  <g stroke="#93a7c0" fill="none" opacity=".55">
+                    <circle cx="120" cy="95" r="86" stroke-width=".5" stroke-dasharray="2 4"/>
+                    <line x1="120" y1="6" x2="120" y2="184" stroke-width=".4"/>
+                    <line x1="30" y1="95" x2="210" y2="95" stroke-width=".4"/>
+                  </g>
+                </svg>
+
+                <svg class="tele-hud" viewBox="0 0 240 190" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                  <g stroke="oklch(0.72 0.17 245 / .45)" fill="none" stroke-width=".9" stroke-linecap="round">
+                    <rect x="6" y="6" width="228" height="178" rx="4"/>
+                    <path d="M120 8 V15"/>
+                    <path d="M120 175 V182"/>
+                    <path d="M8 95 H15"/>
+                    <path d="M225 95 H232"/>
+                  </g>
+                </svg>
+
+                <svg class="tele-plot" viewBox="0 0 240 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Polígono auto-intersectado con nodo de tensión y métricas de área y densidad">
+                  <defs>
+                    <filter id="vertGlow" x="-300%" y="-300%" width="700%" height="700%">
+                      <feGaussianBlur stdDeviation="2.6" result="b"/>
+                      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                    <filter id="nodeGlow" x="-300%" y="-300%" width="700%" height="700%">
+                      <feGaussianBlur stdDeviation="3.4" result="b"/>
+                      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                  </defs>
+
+                  <polyline points="110,14 210,58 20,132 210,132 20,58 110,14" fill="none"
+                    stroke="oklch(0.70 0.2 5 / .55)" stroke-width="1.6" stroke-dasharray="5 4" stroke-linejoin="round" opacity=".75"/>
+
+                  <path d="M110,14 L210,58 L20,132 L210,132 L20,58 Z" fill="oklch(0.87 0.21 165 / .12)" stroke="none"/>
+
+                  <g stroke="var(--green)" stroke-width="2" stroke-linecap="round">
+                    <line x1="110" y1="14" x2="210" y2="58"/>
+                    <line x1="20" y1="132" x2="210" y2="132"/>
+                    <line x1="20" y1="58" x2="110" y2="14"/>
+                  </g>
+                  <g stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4">
+                    <line x1="210" y1="58" x2="20" y2="132"/>
+                    <line x1="210" y1="132" x2="20" y2="58"/>
+                  </g>
+
+                  <circle cx="115" cy="95" r="7" fill="none" stroke="oklch(0.80 0.16 70)" stroke-width="1.4" filter="url(#nodeGlow)"/>
+                  <circle cx="115" cy="95" r="2" fill="oklch(0.80 0.16 70)"/>
+                  <text class="node-label" x="115" y="78" text-anchor="middle">AUTO-CRUCE</text>
+
+                  <g filter="url(#vertGlow)">
+                    <circle cx="110" cy="14" r="3.2" fill="var(--green)"/>
+                    <circle cx="210" cy="58" r="3.2" fill="var(--green)"/>
+                    <circle cx="20" cy="132" r="3.2" fill="var(--green)"/>
+                    <circle cx="210" cy="132" r="3.2" fill="var(--green)"/>
+                    <circle cx="20" cy="58" r="3.2" fill="var(--green)"/>
+                  </g>
+                </svg>
+
+                <div class="tele-badge" style="top:18px;left:18px" data-od-id="monkey-badge-area">
+                  <span class="k">Área</span>
+                  <span class="v">8.42<em>cm²</em></span>
+                </div>
+                <div class="tele-badge" style="top:18px;right:18px" data-od-id="monkey-badge-density">
+                  <span class="k">Densidad</span>
+                  <span class="v">42.1<em>HU</em></span>
+                </div>
+              </div>
+              <div class="tele-console" data-od-id="monkey-console">
+                <span class="p" aria-hidden="true">$</span>
+                <span>[cornerstoneTools] freehand: <b>polygon closed</b> · area computed · <b>0 exceptions</b></span>
+                <span class="ok">OK</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>La suite cubre el camino feliz; el monkey testing prueba el límite. Elegimos la herramienta de trazo libre, Freehand ROI, y forzamos el motor trazando polígonos complejos con múltiples auto-intersecciones — algo que un radiólogo raramente hace, pero que un renderizador debe soportar.</p>
+        <p>El resultado: CornerstoneTools demostró una tolerancia a fallos excelente. Cerró el polígono, calculó el área y reportó las métricas de densidad en Unidades Hounsfield sin colapsar, sin lanzar excepciones ni degradar el canvas.</p>
+        <p>Esto no es casualidad: habla de un algoritmo de polígono robusto. Como QA, anotamos el hallazgo como fortaleza estructural del visor, no solo como un test que pasa.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 08 · DEFECTOS CRÍTICOS ============ -->
+    <section class="slide theme-elevated" data-screen-label="09 Defectos críticos" data-od-id="slide-bugs">
+      <div class="wrap">
+        <header class="head">
+          <span class="kicker">09 · <b>Defectos críticos</b> reportados</span>
+          <h2 class="h-section" data-od-id="bugs-titulo">Bugs accionables, con severidad clínica</h2>
+        </header>
+        <div class="bug-grid">
+          <article class="bug" data-od-id="bug-card-lod">
+            <div class="bug-head">
+              <span class="bug-id">Bug 01 · Renderización</span>
+              <span class="sev high">Severidad alta</span>
+            </div>
+            <div class="bug-row"><span class="k">Contexto</span><span class="v">En la vista 3D, el visor degrada el <b>Level of Detail</b> a nube de puntos al abrir el menú circular para liberar recursos.</span></div>
+            <div class="bug-row"><span class="k">Defecto</span><span class="v">Al cerrarlo, no se dispara el evento de actualización visual (<b>Render Update Failure</b>): el modelo queda pixelado y no recupera resolución.</span></div>
+            <div class="bug-row"><span class="k">Impacto</span><span class="v">Oculta detalles anatómicos críticos durante la <b>lectura volumétrica</b>.</span></div>
+          </article>
+          <article class="bug" data-od-id="bug-card-clipping">
+            <div class="bug-head">
+              <span class="bug-id">Bug 02 · UI</span>
+              <span class="sev med">Severidad media</span>
+            </div>
+            <div class="bug-row"><span class="k">Contexto</span><span class="v">Interacción del usuario en las proximidades de los <b>bordes del viewport</b>.</span></div>
+            <div class="bug-row"><span class="k">Defecto</span><span class="v">El menú circular se renderiza <b>sin calcular los límites del contenedor</b>: las herramientas de esos cuadrantes quedan recortadas (clipped) fuera de pantalla.</span></div>
+            <div class="bug-row"><span class="k">Impacto</span><span class="v">Herramientas <b>inalcanzables</b> en regiones críticas del lienzo clínico.</span></div>
+          </article>
+        </div>
+        <div style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px">
+          <span class="pill">Reproducibles</span><span class="pill">Con evidencia en Allure</span><span class="pill green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>Encontrados antes que un radiólogo en producción</span>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>Dos defectos críticos que la suite o la exploración dejaron en evidencia. Primero, severidad alta: en la vista 3D, al abrir el menú circular el visor degrada el nivel de detalle a una nube de puntos para liberar recursos; al cerrarlo, el evento de actualización visual no se dispara — Render Update Failure — y el modelo queda pixelado indefinidamente.</p>
+        <p>El impacto clínico es directo: ocultar detalles anatómicos en lectura volumétrica. Segundo, severidad media: el menú circular no calcula los límites del contenedor; al hacer clic derecho cerca de las esquinas del canvas, las herramientas quedan recortadas fuera de pantalla.</p>
+        <p>Ambos son accionables y reproducibles, con evidencia adjunta en el reporte. El valor del QA es encontrarlos antes que un radiólogo en producción.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 09 · FRICCIÓN COGNITIVA ============ -->
+    <section class="slide theme-dark" data-screen-label="10 Fricción cognitiva" data-od-id="slide-ux">
+      <div class="wrap">
+        <header class="head">
+          <span class="kicker">10 · <b>UX Feedback</b></span>
+          <h2 class="h-section" data-od-id="ux-titulo">Fricción cognitiva en el flujo clínico</h2>
+          <p class="lead">El QA como voz del usuario clínico: hallazgo → impacto → recomendación accionable.</p>
+        </header>
+        <div class="fric">
+          <article class="fric-card" data-od-id="friccion-flecha">
+            <span class="card-label">Fricción 01</span>
+            <h3>Herramienta Flecha · modelo mental invertido</h3>
+            <div class="cmp">
+              <div class="side ok"><span class="lab">Esperado</span>Origen → Destino</div>
+              <div class="side ko"><span class="lab">Actual</span>Destino → Origen</div>
+            </div>
+            <div class="fric-row"><span class="k">Hallazgo</span><span class="v">El <b>primer clic</b> define la punta (destino); el arrastre define la cola (origen).</span></div>
+            <div class="fric-row"><span class="k">Impacto</span><span class="v">Rompe el estándar y la <b>memoria muscular</b>: fricción inmediata y trazos erróneos en el uso inicial.</span></div>
+            <div class="fric-row rec"><span class="k">Recomendación</span><span class="v">Invertir la lógica de trazado.</span></div>
+          </article>
+          <article class="fric-card" data-od-id="friccion-texto">
+            <span class="card-label">Fricción 02</span>
+            <h3>Anotación de texto · acoplamiento forzado</h3>
+            <div class="cmp">
+              <div class="side ok"><span class="lab">Esperado</span>Texto libre directo</div>
+              <div class="side ko"><span class="lab">Actual</span>Vector obligatorio + etiqueta</div>
+            </div>
+            <div class="fric-row"><span class="k">Hallazgo</span><span class="v">No existe opción de <b>texto libre</b>: para insertar una etiqueta hay que dibujar primero una flecha.</span></div>
+            <div class="fric-row"><span class="k">Impacto</span><span class="v">Satura el lienzo clínico y obliga a dibujar <b>vectores sobre los tejidos</b> para anotar nomenclatura.</span></div>
+            <div class="fric-row rec"><span class="k">Recomendación</span><span class="v">Desacoplar texto de vector en el menú circular.</span></div>
+          </article>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>Salimos del renderizado y miramos la experiencia del radiólogo. Hallazgo uno: la herramienta flecha invierte el modelo mental. El primer clic define la punta — el destino — y el arrastre define la cola.</p>
+        <p>La industria y la memoria muscular esperan Origen → Destino; el resultado es fricción inmediata y trazos erróneos. Recomendación: invertir la lógica de trazado.</p>
+        <p>Hallazgo dos: el menú circular no ofrece texto libre; para insertar una etiqueta hay que dibujar primero una flecha. Ese acoplamiento satura el lienzo clínico y obliga a dibujar vectores sobre tejidos solo para anotar una nomenclatura. Recomendación: desacoplar el texto del vector y ofrecer la etiqueta como opción independiente. El QA es la voz del usuario clínico.</p>
+      </aside>
+    </section>
+
+    <!-- ============ 10 · CI/CD Y SIGUIENTES PASOS ============ -->
+    <section class="slide theme-hero-dark" data-screen-label="11 CI/CD y siguientes pasos" data-od-id="slide-cicd">
+      <div class="wrap">
+        <header class="head" style="text-align:center">
+          <span class="kicker" style="justify-content:center">11 · <b>CI/CD</b> y siguientes pasos</span>
+          <h2 class="h-section" data-od-id="cicd-titulo">Del reto al <span class="green-t">pipeline</span> de producción</h2>
+        </header>
+        <div class="pipe" data-od-id="pipeline">
+          <div class="pipe-step now"><span class="pipe-logo"><img src="assets/logos/github.svg" alt=""></span><div class="t">Pull Request</div><div class="d">GitHub Actions · cada PR</div></div>
+          <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <div class="pipe-step now"><span class="pipe-logo"><img src="assets/logos/docker.png" alt=""></span><div class="t">Build Docker</div><div class="d">entorno reproducible</div></div>
+          <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <div class="pipe-step"><span class="pipe-logo"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></svg></span><div class="t">Xvfb · WebGL headed</div><div class="d">render sin pantalla · propuesta</div></div>
+          <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <div class="pipe-step now"><span class="pipe-logo"><img src="assets/logos/behave.png" alt=""></span><div class="t">Behave E2E</div><div class="d">9 escenarios</div></div>
+          <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <div class="pipe-step now"><span class="pipe-logo"><img src="assets/logos/allure.png" alt=""></span><div class="t">Allure Report</div><div class="d">evidencia por paso</div></div>
+        </div>
+        <div class="road">
+          <div class="item" data-od-id="road-estado">
+            <span class="n">Siguiente paso 01</span>
+            <h4>Validaciones a nivel de estado</h4>
+            <p>Consultar el <b>store de CornerstoneTools</b> directamente vía JS y asertar sobre el estado real del visor, no solo sobre el DOM.</p>
+          </div>
+          <div class="item" data-od-id="road-perf">
+            <span class="n">Siguiente paso 02</span>
+            <h4>Monitoreo de performance de red</h4>
+            <p>Detectar degradación en la <b>carga de DICOM</b> antes de que afecte la lectura del radiólogo.</p>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center">
+          <button class="cta" type="button" data-od-id="cta-pipeline" aria-label="Solicitar la integración del framework en el pipeline CI">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            Listo para integrar en su pipeline
+          </button>
+        </div>
+      </div>
+      <aside class="notes" hidden>
+        <p>Para cerrar, la estrategia de CI/CD. La suite ya corre contenedorizada en Docker; como el visor exige WebGL funcional, el pipeline usa Xvfb para renderizar en modo headed dentro de entornos sin interfaz gráfica. Cada pull request dispara un job de GitHub Actions que construye el contenedor, corre la suite completa y publica el reporte de Allure.</p>
+        <p>Dos siguientes pasos para elevar la suite. Primero, validaciones a nivel de estado: consultar el store de CornerstoneTools directamente vía JavaScript para asertar sobre el estado real del visor y no solo sobre el DOM. Segundo, monitoreo de performance de red para detectar degradación en la carga de DICOM.</p>
+        <p>El framework está listo para integrarse en su pipeline y producir reportes con evidencia en cada ejecución. La pregunta que queda abierta es cuándo empezamos.</p>
+      </aside>
+    </section>
+
+  </div>
+
+  <!-- top progress -->
+  <div class="topbar" aria-hidden="true"><i id="bar"></i></div>
+
+  <!-- navigation -->
+  <nav class="navbar" aria-label="Navegación de diapositivas">
+    <button class="nav-btn" id="btnPrev" data-od-id="btn-prev" aria-label="Diapositiva anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <div class="nav-sep"></div>
+    <span class="nav-count" id="count"></span>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" id="btnNext" data-od-id="btn-next" aria-label="Diapositiva siguiente">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" id="btnNotes" data-od-id="btn-notes" aria-label="Mostrar notas del presentador" title="Notas (N)">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h5"/></svg>
+    </button>
+  </nav>
+
+  <div class="nav-hint" aria-hidden="true"><span class="kbd">←</span> <span class="kbd">→</span> navegar · <span class="kbd">N</span> notas</div>
+
+  <!-- notes panel -->
+  <div class="notes-panel" id="notesPanel" role="region" aria-label="Notas del presentador" aria-live="polite">
+    <header>
+      <h2 id="notesTitle">Notas del presentador</h2>
+      <button class="close" id="notesClose" aria-label="Cerrar notas">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div id="notesBody"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var track = document.getElementById('track');
+  var count = document.getElementById('count');
+  var bar = document.getElementById('bar');
+  var panel = document.getElementById('notesPanel');
+  var notesBody = document.getElementById('notesBody');
+  var notesTitle = document.getElementById('notesTitle');
+  var deck = document.getElementById('deck');
+  var KEY = 'eden-pacs-deck-pos';
+  var total = slides.length;
+  var idx = Math.min(parseInt(localStorage.getItem(KEY) || '0', 10) || 0, total - 1);
+
+  function label(i) { return slides[i].dataset.screenLabel || String(i + 1); }
+
+  function render() {
+    track.style.transform = 'translateX(' + (-idx * 100) + 'vw)';
+    var pct = (idx + 1) / total;
+    bar.style.transform = 'scaleX(' + pct + ')';
+    count.innerHTML = '<b>' + String(idx + 1).padStart(2, '0') + '</b> / ' + String(total).padStart(2, '0') + ' · ' + label(idx);
+    notesTitle.textContent = 'Notas · ' + label(idx);
+    var note = slides[idx].querySelector('.notes');
+    notesBody.innerHTML = note ? note.innerHTML : '<p>Sin notas para esta diapositiva.</p>';
+    document.title = label(idx) + ' — Eden PACS · QA Automation Challenge';
+  }
+
+  function go(n) {
+    idx = Math.max(0, Math.min(total - 1, n));
+    try { localStorage.setItem(KEY, String(idx)); } catch (e) {}
+    render();
+  }
+
+  function toggleNotes(force) {
+    var open = typeof force === 'boolean' ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    if (open) panel.scrollTop = 0;
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    switch (e.key) {
+      case 'ArrowRight': case 'PageDown': e.preventDefault(); go(idx + 1); break;
+      case 'ArrowLeft': case 'PageUp': e.preventDefault(); go(idx - 1); break;
+      case ' ': e.preventDefault(); go(idx + 1); break;
+      case 'Home': e.preventDefault(); go(0); break;
+      case 'End': e.preventDefault(); go(total - 1); break;
+      case 'n': case 'N': toggleNotes(); break;
+      case 'Escape': toggleNotes(false); break;
+    }
+  });
+
+  document.getElementById('btnPrev').addEventListener('click', function () { go(idx - 1); });
+  document.getElementById('btnNext').addEventListener('click', function () { go(idx + 1); });
+  document.getElementById('btnNotes').addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notesClose').addEventListener('click', function () { toggleNotes(false); });
+
+  var startX = null, startY = null;
+  deck.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    startX = e.clientX; startY = e.clientY;
+    deck.setPointerCapture && deck.setPointerCapture(e.pointerId);
+  });
+  deck.addEventListener('pointerup', function (e) {
+    if (startX === null) return;
+    var dx = e.clientX - startX, dy = e.clientY - startY;
+    startX = startY = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) go(idx + (dx < 0 ? 1 : -1));
+  });
+
+  try { deck.focus({ preventScroll: true }); } catch (e) { deck.focus(); }
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+team_name: eden
+base_url: https://pacs.evacenter.com
+browser: chromium
+headless: true
+timeout: 60000
+
+mpr_viewer:
+  url: '/v2/mpr?studyId=738cb683-8426-42a1-b27e-921f455b70c4&tab=images&ac=dXNlcj1ldmEtY2VudGVyQHZpc2l0YW50LmNvbSZwYXNzd29yZD0zOTc5NzRlNS1hOWExLTQyOWYtYWRmMS02YzJkOTQ4ODhhYmImZXh0cmFfdmFsaWRhdGlvbj02ODkxNjNiYS0wMzAzLTRlYTEtYTRlMC1mNGE5Y2RiYTQ0YWQ%3D%3D%3D&md=1&serieId=0d018bf7-c18f-4882-b8fb-440fb72299d8&fromViewer=mobile_viewer'
+
+  selectors:
+    circular_menu_opened: '.circular-menu.opened-nav'
+    circular_menu_item: '#circular-menu.opened-nav > ul > li > a'
+    viewport_articles: article
+    active_tool_tab: '[role="tab"][aria-selected="true"]'
+    longitud_button: 'button[data-cy="button-Longitud"]'
+
+  icon_paths:
+    ruler: 'M4 9a1 1 0 0 1 1-1h14'
+    pan: 'M11.293 4.293a1 1 0 011.414 0l'
+    zoom: 'M11 6a5 5 0 100 10 5 5 0 000-1'
+
+  tool_labels:
+    measurement: Medición
+    pan: Mover
+    zoom: Zoom
+
+  timeouts:
+    network_idle: 15000
+    fallback_wait: 5000
+    circular_menu_open: 5000
+    circular_menu_close: 2000
+    tool_activate: 10000

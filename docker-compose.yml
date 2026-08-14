@@ -1,0 +1,9 @@
+services:
+  tests:
+    build: .
+    container_name: patriot-tests
+    volumes:
+      - ./results:/app/results
+    environment:
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+    command: ["-t", "eden"]

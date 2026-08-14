@@ -1,0 +1,22 @@
+[    1254ms] [LOG] CornerstoneRender: using GPU rendering @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[    4899ms] [WARNING] Tool Zoom not added to toolGroup, can't set tool mode. @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[    4900ms] [WARNING] Tool Zoom not added to toolGroup, can't set tool mode. @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10087ms] [WARNING] Warning: Set value to model directly dataType, Int16Array @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10087ms] [WARNING] Warning: Set value to model directly voxelManager, [object Object] @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10087ms] [WARNING] Warning: Set value to model directly id, cornerstoneStreamingImageVolume:MPR_VOLUME_ID-0d018bf7-c18f-4882-b8fb-440fb72299d8 @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10087ms] [WARNING] Warning: Set value to model directly numberOfComponents, 1 @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10087ms] [WARNING] Warning: Set value to model directly hasScalarVolume, false @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10100ms] [WARNING] Warning: Set value to model directly viewportId, 0 @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10102ms] [WARNING] Warning: Set value to model directly viewportId, 1 @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10103ms] [WARNING] Warning: Set value to model directly viewportId, 2 @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10103ms] [WARNING] Warning: Set value to model directly viewportId, 3 @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[   10118ms] [WARNING] 'VolumeCropping' is not registered with this toolGroup (VIEWPORT_3D_TOOL_GROUP_ID). @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10118ms] [WARNING] 'Freehand3DVolumeCropping' is not registered with this toolGroup (VIEWPORT_3D_TOOL_GROUP_ID). @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10269ms] [WARNING] [VWS-1207] MPR predictedEpsMm=0.0700mm (mu=1.0000) @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10274ms] [WARNING] [VWS-1207] MPR predictedEpsMm=0.0700mm (mu=1.0000) @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10280ms] [WARNING] [VWS-1207] MPR predictedEpsMm=0.0700mm (mu=1.0000) @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10290ms] [WARNING] [VWS-1207] MPR predictedEpsMm=0.0700mm (mu=1.0000) @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10313ms] [WARNING] 'Crosshairs' is not registered with this toolGroup (VIEWPORT_TOOL_GROUP_ID). @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10313ms] [WARNING] 'Crosshairs' is not registered with this toolGroup (VIEWPORT_3D_TOOL_GROUP_ID). @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10313ms] [WARNING] 'Crosshairs' is not registered with this toolGroup (VIEWPORT_TOOL_GROUP_ID). @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[   10313ms] [WARNING] 'Crosshairs' is not registered with this toolGroup (VIEWPORT_3D_TOOL_GROUP_ID). @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161

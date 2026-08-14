@@ -1,0 +1,115 @@
+- generic [ref=f3e8]:
+  - generic [ref=f3e9]:
+    - generic [ref=f3e11]:
+      - generic [ref=f3e12]:
+        - link [ref=f3e13] [cursor=pointer]:
+          - /url: /v2/
+        - button "Disposición" [ref=f3e18] [cursor=pointer]
+      - tablist [ref=f3e23]:
+        - generic [ref=f3e24]:
+          - button "Remover cama" [ref=f3e25] [cursor=pointer]
+          - tab "Punto de mira" [selected] [ref=f3e29] [cursor=pointer]
+          - tab "Mover" [ref=f3e33] [cursor=pointer]
+          - tab "Scroll" [ref=f3e37] [cursor=pointer]
+          - tab "Zoom" [ref=f3e41] [cursor=pointer]
+          - tab "Restaurar" [ref=f3e45] [cursor=pointer]
+          - tab "Medición" [ref=f3e50] [cursor=pointer]
+          - tab "Ángulos" [ref=f3e54] [cursor=pointer]
+          - tab "ROI" [ref=f3e58] [cursor=pointer]
+          - tab "Anotación" [ref=f3e62] [cursor=pointer]
+      - generic [ref=f3e67]:
+        - button "Análisis de vasos" [ref=f3e68] [cursor=pointer]
+        - button "Salir" [ref=f3e72] [cursor=pointer]
+    - generic [ref=f3e76]:
+      - generic [ref=f3e78]:
+        - generic [ref=f3e79]:
+          - generic [ref=f3e80]: Grosor de corte
+          - generic [ref=f3e82]:
+            - generic [ref=f3e83]: "0.1"
+            - slider [ref=f3e88] [cursor=pointer]
+            - generic [ref=f3e89]: "50"
+          - generic [ref=f3e92]:
+            - generic [ref=f3e93]:
+              - textbox [ref=f3e94]: "0.1"
+              - generic [ref=f3e95]: mm
+            - generic [ref=f3e96]:
+              - button [ref=f3e97] [cursor=pointer]
+              - button [disabled] [ref=f3e100]
+        - button "MIP" [ref=f3e105] [cursor=pointer]
+      - generic [ref=f3e110]:
+        - button [ref=f3e111] [cursor=pointer]
+        - button "Niveles predefinidos" [ref=f3e116] [cursor=pointer]
+        - button [ref=f3e120] [cursor=pointer]
+        - button [ref=f3e123] [cursor=pointer]
+        - button [ref=f3e126] [cursor=pointer]
+  - generic [ref=f3e129]:
+    - button
+    - article [ref=f3e130]:
+      - slider [ref=f3e137]
+      - generic [ref=f3e141]:
+        - button "Axial" [ref=f3e142] [cursor=pointer]
+        - button "C" [ref=f3e146] [cursor=pointer]
+        - button "S" [ref=f3e148] [cursor=pointer]
+        - button [ref=f3e150] [cursor=pointer]
+    - article [ref=f3e153]:
+      - slider [ref=f3e160]
+      - generic [ref=f3e164]:
+        - button "A" [ref=f3e165] [cursor=pointer]
+        - button "Coronal" [ref=f3e167] [cursor=pointer]
+        - button "S" [ref=f3e171] [cursor=pointer]
+        - button [ref=f3e173] [cursor=pointer]
+    - article [ref=f3e176]:
+      - slider [ref=f3e183]
+      - generic [ref=f3e187]:
+        - button "A" [ref=f3e188] [cursor=pointer]
+        - button "C" [ref=f3e190] [cursor=pointer]
+        - button "Sagital" [ref=f3e192] [cursor=pointer]
+        - button [ref=f3e196] [cursor=pointer]
+    - article [ref=f3e199]:
+      - generic: Alfredo Abraham Zelaya Cruz
+      - generic [ref=f3e209]:
+        - button "A" [ref=f3e210] [cursor=pointer]
+        - button "C" [ref=f3e212] [cursor=pointer]
+        - button "S" [ref=f3e214] [cursor=pointer]
+        - button "3D" [ref=f3e216] [cursor=pointer]
+    - button
+    - generic:
+      - list:
+        - listitem
+        - listitem
+        - listitem
+    - generic:
+      - list:
+        - listitem
+        - listitem
+        - listitem
+    - generic:
+      - list:
+        - listitem
+        - listitem
+        - listitem
+    - generic:
+      - list:
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+    - generic:
+      - list:
+        - listitem
+        - listitem
+    - generic:
+      - list:
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem
+        - listitem

@@ -1,0 +1,77 @@
+- generic [ref=f1e6]:
+  - generic [ref=f1e11]:
+    - heading "Iniciar sesión" [level=3] [ref=f1e12]
+    - paragraph [ref=f1e13]: Ingresa tus datos para utilizar el RIS/PACS líder en el mercado.
+    - separator [ref=f1e14]
+    - generic [ref=f1e15]:
+      - generic [ref=f1e17]:
+        - generic [ref=f1e18]: Correo electrónico
+        - textbox "Correo electrónico" [ref=f1e19]
+      - generic [ref=f1e21]:
+        - generic [ref=f1e22]: Contraseña
+        - generic [ref=f1e23]:
+          - textbox "Contraseña" [ref=f1e24]
+          - button [ref=f1e25] [cursor=pointer]
+      - button "Iniciar sesión" [ref=f1e28] [cursor=pointer]
+      - link "¿Olvidaste tu contraseña?" [ref=f1e31] [cursor=pointer]:
+        - /url: forgot-password
+  - generic [ref=f1e33]:
+    - generic [ref=f1e35]:
+      - generic [ref=f1e37]:
+        - generic [ref=f1e38]:
+          - heading "¿Cómo subir un archivo no DICOM?" [level=6] [ref=f1e39]
+          - paragraph [ref=f1e40]: Usa esta funcionalidad para estudios de laboratorio y especialidad. Almacena y visualiza todos los archivos de tus pacientes de cualquier formato incluyendo jpg, png y pdf.
+        - img "¿Cómo subir un archivo no DICOM?" [ref=f1e42]
+      - generic [ref=f1e44]:
+        - generic [ref=f1e45]:
+          - heading "Domina la herramienta de imágenes clave" [level=6] [ref=f1e46]
+          - paragraph [ref=f1e47]: A través de ella podrán facilitar la interpretación de estudios y comunicación con pacientes, técnicos y/o médicos.
+        - img "Domina la herramienta de imágenes clave" [ref=f1e49]
+      - generic [ref=f1e51]:
+        - generic [ref=f1e52]:
+          - heading "Agendamiento de citas con Eden Management" [level=6] [ref=f1e53]
+          - paragraph [ref=f1e54]: Obtén una visión completa del calendario de citas de todas tus salas y sucursales, aprovecha las predicciones de los mejores horarios para agendar a tus pacientes y reagenda citas con un solo clic. Gestiona y visualiza de manera eficiente tus salas activas e inactivas para optimizar tus procesos de agendamiento.
+        - img "Agendamiento de citas con Eden Management" [ref=f1e56]
+      - generic [ref=f1e58]:
+        - generic [ref=f1e59]:
+          - heading "Herramientas para estudios de mastografía" [level=6] [ref=f1e60]
+          - paragraph [ref=f1e61]: "Mejora la precisión de tus análisis de mastografía con nuestras herramientas: zoom por región con mapa del seno, líneas de referencia cruzada para correlación de áreas y una lupa de aumento en la parte de zoom (especialmente útil para microcalcificaciones)."
+        - img "Herramientas para estudios de mastografía" [ref=f1e63]
+      - generic [ref=f1e65]:
+        - generic [ref=f1e66]:
+          - heading "Uso de filtros en la lista de estudios" [level=6] [ref=f1e67]
+          - paragraph [ref=f1e68]: Esto te permitirá optimizar tu tiempo al tener una vista de los estudios que más te interesan y que deseas priorizar.
+        - img "Uso de filtros en la lista de estudios" [ref=f1e70]
+      - generic [ref=f1e72]:
+        - generic [ref=f1e73]:
+          - heading "Edita la información de un paciente" [level=6] [ref=f1e74]
+          - paragraph [ref=f1e75]: Desde la lista de estudios podrás corregir rápidamente problemas de captura de datos y tener una mejor trazabilidad de los pacientes.
+        - img "Edita la información de un paciente" [ref=f1e77]
+      - generic [ref=f1e79]:
+        - generic [ref=f1e80]:
+          - heading "Imprime los estudios en formato PDF, JPG o DICOM" [level=6] [ref=f1e81]
+          - paragraph [ref=f1e82]: De esta forma podrás mantener flexibilidad en tus procesos y cumplir con las necesidades de tus clientes más allá del envío digital.
+        - img "Imprime los estudios en formato PDF, JPG o DICOM" [ref=f1e84]
+      - generic [ref=f1e86]:
+        - generic [ref=f1e87]:
+          - heading "Utiliza el modo cine" [level=6] [ref=f1e88]
+          - paragraph [ref=f1e89]: Con esta funcionalidad podrás visualizar series de imágenes extensas en movimiento, ya que esto puede revelar detalles que no son perceptibles en una imagen estática.
+        - img "Utiliza el modo cine" [ref=f1e91]
+      - generic [ref=f1e93]:
+        - generic [ref=f1e94]:
+          - heading "Visualiza estudios anteriores dentro del visor DICOM" [level=6] [ref=f1e95]
+          - paragraph [ref=f1e96]: Para facilitar tu trabajo, todos los estudios asociados a un paciente se pueden ver como histórico dentro del PACS, de esta manera podrás tener diagnósticos más precisos comparando resultados previos.
+        - img "Visualiza estudios anteriores dentro del visor DICOM" [ref=f1e98]
+      - generic [ref=f1e100]:
+        - generic [ref=f1e101]:
+          - heading "Crea y suspende usuarios de manera rápida" [level=6] [ref=f1e102]
+          - paragraph [ref=f1e103]: Usa esta funcionalidad para controlar los permisos e información a la que tendrá acceso toda tu organización.
+        - img "Crea y suspende usuarios de manera rápida" [ref=f1e105]
+      - generic [ref=f1e107]:
+        - generic [ref=f1e108]:
+          - heading "Reconstrucción multiplanar avanzada" [level=6] [ref=f1e109]
+          - paragraph [ref=f1e110]: Permite una visualización más profunda de la imagen utilizando la proyección de máxima intensidad (MIP). Ten un mayor control en las mediciones, incluyendo mediciones bidireccionales, ángulos normales y de Cobb, así como ROI elípticos, rectangulares y de muestreo. Además, puedes agregar anotaciones a las imágenes para resaltar información relevante.
+        - img "Reconstrucción multiplanar avanzada" [ref=f1e112]
+    - generic [ref=f1e113]:
+      - button [ref=f1e114] [cursor=pointer]
+      - button [ref=f1e117] [cursor=pointer]

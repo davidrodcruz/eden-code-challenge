@@ -1,0 +1,7 @@
+[    1172ms] [LOG] CornerstoneRender: using GPU rendering @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:0
+[    2544ms] [ERROR] [GraphQL error]: Message: El visitante no tiene permiso para realizar esta acción., Location: [object Object], Path: study, Code: visitant_permission_denied @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:388
+[    2549ms] [ERROR] [GraphQL error]: Message: El visitante no tiene permiso para realizar esta acción., Location: [object Object], Path: serie, Code: visitant_permission_denied @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:388
+[    2557ms] [ERROR] Error loading serie @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:388
+[    2588ms] [WARNING] Tool Zoom not added to toolGroup, can't set tool mode. @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[    2589ms] [WARNING] Tool Zoom not added to toolGroup, can't set tool mode. @ https://pacs.evacenter.com/v2/main.29a64a218577d1af.js:161
+[    3579ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://apps.evacenter.com/login:0
