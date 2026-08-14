@@ -348,6 +348,12 @@ No se usan imports absolutos tipo `tests.webui...` (la carpeta raíz tiene guion
 
 ---
 
-## Autor
+## Author
 
-**Davo** — Software Engineer in Test
+**davidrodcruz** — Software Engineer in Test
+
+---
+
+## License
+
+MIT
