@@ -28,7 +28,7 @@ class Config:
 
     def _apply_env_overrides(self, config: dict) -> dict:
         for key, value in list(config.items()):
-            env_key = f"PATRIOT_{key.upper()}"
+            env_key = f"EDEN_{key.upper()}"
             env_value = os.getenv(env_key)
             if env_value is not None:
                 config[key] = self._coerce(env_value)
