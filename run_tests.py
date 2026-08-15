@@ -6,7 +6,7 @@ from core.run_tests_utils import run_tests
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Proyect Patriot - Web UI Test Framework"
+        description="eden-code-challenge - Web UI Test Framework"
     )
     parser.add_argument(
         "-t", "--team", required=True, help="Team name (comma-separated for multiple)"

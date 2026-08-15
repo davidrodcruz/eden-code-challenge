@@ -1,4 +1,4 @@
-# Project Patriot — Eden PACS QA Framework
+# eden-code-challenge — Eden PACS QA Framework
 
 Web UI test automation framework (BDD) for **Eden PACS** — a medical DICOM image viewer (MPR - Multi-Planar Reconstruction).
 
@@ -135,7 +135,7 @@ mpr_viewer:
     tool_activate: 10000
 ```
 
-Overrides via env vars: `PATRIOT_BASE_URL`, `PATRIOT_BROWSER`, `PATRIOT_HEADLESS`, `PATRIOT_TIMEOUT`.
+Overrides via env vars: `EDEN_BASE_URL`, `EDEN_BROWSER`, `EDEN_HEADLESS`, `EDEN_TIMEOUT`.
 
 ---
 
@@ -195,6 +195,22 @@ All browser interactions use Playwright async. Steps are `async def`. The `Brows
 - Specific steps attach named evidence (highlight screenshots, assertion values).
 - Full session video per scenario (`results/videos/*.webm`).
 - Single-file Allure report with screenshots, text, and video.
+
+---
+
+## Architecture Note (Multi-Tenant Design)
+
+The `tests/webui/teams/eden/` structure and the `-t eden` CLI flag might look over-engineered for a 9-scenario challenge. This is intentional.
+
+My approach as a Quality Architect isn't just "automate a flow" — it's to build **scalable test infrastructure** (a Quality Platform). In a real environment like Eden, where different squads (e.g., Viewer, Patient Portal, Billing) automate against the same product, a monolithic design creates dependency conflicts and CI/CD bottlenecks.
+
+This framework is designed to be **Multi-Tenant**:
+
+- **Config isolation** — `config.yaml` per team
+- **Isolation of Page Objects and Features** — each team owns its domain
+- **Parallel execution by business domain** in the pipeline (`-t viewer,portal,billing -p 3`)
+
+The goal of this delivery is to demonstrate how I would structure the base so that **N teams can automate autonomously from day 1**.
 
 ---
 

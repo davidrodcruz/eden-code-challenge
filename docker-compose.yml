@@ -1,7 +1,7 @@
 services:
   tests:
     build: .
-    container_name: patriot-tests
+    container_name: eden-code-challenge-tests
     volumes:
       - ./results:/app/results
     environment:
