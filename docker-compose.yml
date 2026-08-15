@@ -8,4 +8,8 @@ services:
       - ./results:/app/results
     environment:
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+    # Allocate a pseudo-TTY so the tqdm progress bar can write to /dev/tty
+    # even though behave captures stdout/stderr by default.
+    tty: true
+    stdin_open: true
     command: ["-t", "eden"]
