@@ -7,6 +7,10 @@ on:
     types: [run-tests-webhook]
   workflow_dispatch:
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   e2e:
     name: Run E2E Tests
