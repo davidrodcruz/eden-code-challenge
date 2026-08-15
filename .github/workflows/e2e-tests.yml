@@ -34,7 +34,7 @@ jobs:
       - name: Run E2E tests
         id: tests
         continue-on-error: true
-        run: docker compose run --rm tests -t eden --headless
+        run: docker compose run --rm tests -t eden --tags @smoke --headless
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'
@@ -46,8 +46,8 @@ jobs:
 
             ${{ steps.tests.outcome == 'success' && '### Result: Passed 🟢' || '### Result: Failed 🔴' }}
 
-            Tests executed in Docker container (`python:3.11-slim-bookworm`).
-            Command: `docker compose run --rm tests -t eden --headless`
+            Smoke tests executed in Docker container (`python:3.11-slim-bookworm`).
+            Command: `docker compose run --rm tests -t eden --tags @smoke --headless`
 
             > Allure report and video recordings available in workflow artifacts.
 
