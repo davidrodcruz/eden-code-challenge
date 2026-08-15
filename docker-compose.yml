@@ -1,7 +1,9 @@
 services:
   tests:
     build: .
+    image: eden-code-challenge-tests:latest
     container_name: eden-code-challenge-tests
+    shm_size: '2gb'
     volumes:
       - ./results:/app/results
     environment:

@@ -66,11 +66,15 @@ class BrowserManager:
         cls._VIDEO_DIR.mkdir(parents=True, exist_ok=True)
         cls._playwright = await async_playwright().start()
         cls._browser = await cls._launch(browser_name, headless)
-        cls._context = await cls._browser.new_context(
-            viewport=viewport,
-            record_video_dir=str(cls._VIDEO_DIR),
-            record_video_size=viewport,
-        )
+        context_options = {
+            "viewport": viewport,
+            "record_video_dir": str(cls._VIDEO_DIR),
+            "record_video_size": viewport,
+        }
+        locale = team_config.get("locale")
+        if locale:
+            context_options["locale"] = locale
+        cls._context = await cls._browser.new_context(**context_options)
         cls._context.set_default_timeout(int(team_config.get("timeout", 30000)))
         cls._page = await cls._context.new_page()
         context.page = cls._page
@@ -86,7 +90,12 @@ class BrowserManager:
         browser_type = browser_types.get(browser_name)
         if browser_type is None:
             raise ValueError(f"Unsupported browser: {browser_name}")
-        return await browser_type.launch(headless=headless)
+        args = [
+            "--use-gl=swiftshader",
+            "--enable-webgl",
+            "--disable-gpu-sandbox",
+        ] if headless else []
+        return await browser_type.launch(headless=headless, args=args)
 
     @classmethod
     def _cleanup_sync(cls) -> None:

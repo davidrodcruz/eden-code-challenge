@@ -4,3 +4,4 @@ allure-behave>=2.13.2
 allure-python-commons>=2.13.2
 pyyaml>=6.0.1
 python-dotenv>=1.0.0
+tqdm>=4.67.1

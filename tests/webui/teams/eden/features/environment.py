@@ -6,6 +6,7 @@ import allure
 from allure_commons.types import AttachmentType
 
 from core.config import config
+from core.progress_utils import init_progress_bar, update_progress_bar, close_progress_bar
 
 _TEAM_DIR = Path(__file__).resolve().parent.parent
 TEAM = _TEAM_DIR.name
@@ -17,6 +18,12 @@ def before_all(context):
     context.shared_data = {}
     context.team = TEAM
     context.team_config = config.get_team_config(TEAM)
+    context.pbar = None
+
+
+def before_feature(context, feature):
+    """Initialize progress bar with the total number of scenarios in this feature."""
+    init_progress_bar(context, feature)
 
 
 def before_scenario(context, scenario):
@@ -50,8 +57,9 @@ async def _take_screenshot(context, step):
 
 
 def after_scenario(context, scenario):
+    update_progress_bar(context, scenario.name)
     context.shared_data = {}
 
 
 def after_all(context):
-    pass
+    close_progress_bar(context)
