@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from core.run_tests_utils import run_tests
+from utils.run_tests_utils import run_tests
 
 
 def main():

@@ -6,7 +6,7 @@ import allure
 from allure_commons.types import AttachmentType
 
 from core.config import config
-from core.progress_utils import init_progress_bar, update_progress_bar, close_progress_bar
+from utils.progress_utils import init_progress_bar, update_progress_bar, close_progress_bar
 
 _TEAM_DIR = Path(__file__).resolve().parent.parent
 TEAM = _TEAM_DIR.name
