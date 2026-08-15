@@ -22,7 +22,7 @@ def _matches_tags(scenario_tags: list[str], filter_tags: list[str]) -> bool:
 def init_progress_bar(context, feature) -> None:
     filter_tags = getattr(context.config, "tags", [])
     total = sum(1 for s in feature.scenarios if _matches_tags(s.tags, filter_tags)) if filter_tags else len(feature.scenarios)
-    context.pbar = tqdm(total=total, desc="Executing scenarios", unit="scenario") if total > 0 else None
+    context.pbar = tqdm(total=total, desc="Executing scenarios", unit="scenario", disable=False) if total > 0 else None
 
 
 def update_progress_bar(context, scenario_name: str) -> None:
