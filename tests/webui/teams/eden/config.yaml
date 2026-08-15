@@ -2,6 +2,7 @@ team_name: eden
 base_url: https://pacs.evacenter.com
 browser: chromium
 headless: true
+locale: es-MX
 timeout: 60000
 
 mpr_viewer:
@@ -29,4 +30,4 @@ mpr_viewer:
     fallback_wait: 5000
     circular_menu_open: 5000
     circular_menu_close: 2000
-    tool_activate: 10000
+    tool_activate: 20000

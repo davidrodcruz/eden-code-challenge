@@ -31,7 +31,12 @@ RUN apt-get update && \
     libpango-1.0-0 \
     libcairo2 \
     libasound2 \
-    libwayland-client0 && \
+    libwayland-client0 \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    libegl1-mesa \
+    libgles2-mesa \
+    mesa-utils && \
     rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g allure

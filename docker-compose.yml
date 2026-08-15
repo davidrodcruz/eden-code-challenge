@@ -1,6 +1,7 @@
 services:
   tests:
     build: .
+    image: eden-code-challenge-tests:latest
     container_name: eden-code-challenge-tests
     volumes:
       - ./results:/app/results
