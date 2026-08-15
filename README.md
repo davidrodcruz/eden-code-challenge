@@ -175,6 +175,58 @@ Results are saved in `./results/` (mounted volume).
 
 ---
 
+## CI/CD (GitHub Actions)
+
+Automated test execution via `.github/workflows/e2e-tests.yml`.
+
+### Triggers
+
+| Trigger | Description |
+|---------|-------------|
+| `pull_request` → `main` | Runs on every PR targeting main |
+| `repository_dispatch` | External webhooks (`run-tests-webhook`) |
+| `workflow_dispatch` | Manual execution from GitHub UI |
+
+### Pipeline Steps
+
+1. **Checkout** — Clone repository
+2. **Docker Build** — Build image with layer caching (GHA cache)
+3. **Run Tests** — Execute `@smoke` tests in headless mode
+4. **PR Comment** — Sticky comment with result (🟢/🔴)
+5. **Upload Artifacts** — Allure reports + videos (2-day retention)
+6. **Evaluate** — Fail pipeline if tests failed
+
+### Execution
+
+```bash
+# Triggered automatically on PR, or manually:
+docker compose run --rm tests -t eden --tags @smoke --headless
+```
+
+### Why Only @smoke in CI?
+
+WebGL-dependent tests (measurement, zoom, scroll) require GPU rendering. GitHub Actions runners use software rendering (SwiftShader) which is too slow for interactive WebGL operations. Smoke tests verify the deployment without WebGL dependencies.
+
+Full test suite runs locally:
+```bash
+docker compose run --rm tests -t eden --headless
+```
+
+### PR Comment Example
+
+```
+## E2E Tests - Eden PACS MPR
+
+### Result: Passed 🟢
+
+Smoke tests executed in Docker container (python:3.11-slim-bookworm).
+Command: docker compose run --rm tests -t eden --tags @smoke --headless
+
+> Allure report and video recordings available in workflow artifacts.
+```
+
+---
+
 ## Architecture
 
 ### Multi-Team
