@@ -57,7 +57,7 @@ jobs:
         with:
           name: e2e-results
           path: ./results/
-          retention-days: 30
+          retention-days: 2
 
       - name: Evaluate test result
         if: steps.tests.outcome == 'failure'
