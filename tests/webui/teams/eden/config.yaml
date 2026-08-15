@@ -20,11 +20,6 @@ mpr_viewer:
     pan: 'M11.293 4.293a1 1 0 011.414 0l'
     zoom: 'M11 6a5 5 0 100 10 5 5 0 000-1'
 
-  tool_labels:
-    measurement: Medición
-    pan: Mover
-    zoom: Zoom
-
   timeouts:
     network_idle: 30000
     fallback_wait: 10000

@@ -8,7 +8,6 @@ class MprViewerPage:
         viewer = config["mpr_viewer"]
         selectors = viewer["selectors"]
         icons = viewer["icon_paths"]
-        labels = viewer["tool_labels"]
         timeouts = viewer["timeouts"]
 
         self.url = config["base_url"] + viewer["url"]
@@ -22,10 +21,6 @@ class MprViewerPage:
         self.ruler_icon = icons["ruler"]
         self.pan_icon = icons["pan"]
         self.zoom_icon = icons["zoom"]
-
-        self.measurement_label = labels["measurement"]
-        self.pan_label = labels["pan"]
-        self.zoom_label = labels["zoom"]
 
         self.network_idle_timeout = timeouts["network_idle"]
         self.fallback_wait = timeouts["fallback_wait"]
@@ -42,6 +37,14 @@ class MprViewerPage:
             await self.page.wait_for_load_state("networkidle", timeout=self.network_idle_timeout)
         except PlaywrightTimeoutError:
             await self.page.wait_for_timeout(self.fallback_wait)
+        await self.page.wait_for_function(
+            """
+            () => Boolean(
+                window.__E2E_TEST_BRIDGE__?.status?.().toolsAvailable
+            )
+            """,
+            timeout=self.tool_activate_timeout,
+        )
 
     async def screenshot(self) -> bytes:
         return await self.page.screenshot(full_page=True)
@@ -84,51 +87,33 @@ class MprViewerPage:
         await self.page.wait_for_timeout(500)
         highlight_screenshot = await self._click_circular_menu_tool(self.ruler_icon)
         await self.page.wait_for_function(
-            f"""
-            () => document.querySelector('{self.active_tool_tab}')
-                ?.textContent.trim() === '{self.measurement_label}'
-                && !!document.querySelector('{self.longitud_button}')
-            """,
+            "selector => document.querySelector(selector) !== null",
+            arg=self.active_tool_tab,
             timeout=self.tool_activate_timeout,
         )
+        await self.page.wait_for_selector(
+            self.longitud_button,
+            state="visible",
+            timeout=self.tool_activate_timeout,
+        )
+        await self._wait_for_active_tool("Length")
         return highlight_screenshot
 
     async def activate_pan_tool(self) -> None:
         await self.open_circular_menu_on_viewport(0)
         await self.page.wait_for_timeout(500)
         await self._click_circular_menu_tool(self.pan_icon)
-        await self.page.wait_for_function(
-            f"""
-            () => document.querySelector('{self.active_tool_tab}')
-                ?.textContent.trim() === '{self.pan_label}'
-            """,
-            timeout=self.tool_activate_timeout,
-        )
+        await self._wait_for_active_tool("Pan")
 
     async def activate_zoom_tool(self) -> None:
         await self.open_circular_menu_on_viewport(0)
         await self.page.wait_for_timeout(500)
         await self._click_circular_menu_tool(self.zoom_icon)
-        await self.page.wait_for_function(
-            f"""
-            () => document.querySelector('{self.active_tool_tab}')
-                ?.textContent.trim() === '{self.zoom_label}'
-            """,
-            timeout=self.tool_activate_timeout,
-        )
+        await self._wait_for_active_tool("Zoom")
 
     async def clear_annotations(self, viewport_index: int = 0) -> None:
-        await self.page.evaluate(
-            """
-            (viewportIndex) => {
-                const svgs = document.querySelectorAll('.viewport-element svg');
-                const svg = svgs[viewportIndex];
-                if (!svg) return;
-                const groups = svg.querySelectorAll('g[data-annotation-uid]');
-                groups.forEach(g => g.remove());
-            }
-            """,
-            viewport_index,
+        await self._bridge_call(
+            "clearAnnotations", {"viewportId": str(viewport_index)}
         )
 
     async def _click_circular_menu_tool(self, path_start: str) -> bytes:
@@ -193,10 +178,16 @@ class MprViewerPage:
         if y2 is None:
             y2 = center["y"] + center["height"] * 0.1
 
-        await self.page.mouse.click(x1, y1)
-        await self.page.wait_for_timeout(300)
-        await self.page.mouse.click(x2, y2)
-        await self.page.wait_for_timeout(500)
+        canvas_style = await self.page.add_style_tag(
+            content="canvas { pointer-events: none !important; }"
+        )
+        try:
+            await self.page.mouse.click(x1, y1)
+            await self.page.wait_for_timeout(300)
+            await self.page.mouse.click(x2, y2)
+            await self.page.wait_for_timeout(500)
+        finally:
+            await canvas_style.evaluate("element => element.remove()")
 
     async def click_point_on_viewport(
         self, viewport_index: int = 0, x: float = None, y: float = None
@@ -206,8 +197,14 @@ class MprViewerPage:
             x = center["x"]
         if y is None:
             y = center["y"]
-        await self.page.mouse.click(x, y)
-        await self.page.wait_for_timeout(300)
+        canvas_style = await self.page.add_style_tag(
+            content="canvas { pointer-events: none !important; }"
+        )
+        try:
+            await self.page.mouse.click(x, y)
+            await self.page.wait_for_timeout(300)
+        finally:
+            await canvas_style.evaluate("element => element.remove()")
 
     async def double_click_point_on_viewport(
         self, viewport_index: int = 0, x: float = None, y: float = None
@@ -217,8 +214,14 @@ class MprViewerPage:
             x = center["x"]
         if y is None:
             y = center["y"]
-        await self.page.mouse.dblclick(x, y)
-        await self.page.wait_for_timeout(500)
+        canvas_style = await self.page.add_style_tag(
+            content="canvas { pointer-events: none !important; }"
+        )
+        try:
+            await self.page.mouse.dblclick(x, y)
+            await self.page.wait_for_timeout(500)
+        finally:
+            await canvas_style.evaluate("element => element.remove()")
 
     async def drag_on_viewport(
         self, viewport_index: int = 0,
@@ -234,11 +237,17 @@ class MprViewerPage:
             x2 = center["x"] + center["width"] * 0.15
         if y2 is None:
             y2 = center["y"]
-        await self.page.mouse.move(x1, y1)
-        await self.page.mouse.down()
-        await self.page.mouse.move(x2, y2, steps=10)
-        await self.page.mouse.up()
-        await self.page.wait_for_timeout(500)
+        canvas_style = await self.page.add_style_tag(
+            content="canvas { pointer-events: none !important; }"
+        )
+        try:
+            await self.page.mouse.move(x1, y1)
+            await self.page.mouse.down()
+            await self.page.mouse.move(x2, y2, steps=10)
+            await self.page.mouse.up()
+            await self.page.wait_for_timeout(500)
+        finally:
+            await canvas_style.evaluate("element => element.remove()")
 
     async def close_circular_menu_by_clicking_outside(self) -> None:
         box = await self.page.locator(self.viewport_articles).nth(0).bounding_box()
@@ -257,80 +266,76 @@ class MprViewerPage:
 
     async def scroll_up_on_viewport(self, viewport_index: int = 0) -> None:
         center = await self.get_viewport_center(viewport_index)
-        await self.page.mouse.move(center["x"], center["y"])
-        await self.page.mouse.wheel(0, -120)
-        await self.page.wait_for_timeout(500)
+        canvas_style = await self.page.add_style_tag(
+            content="canvas { pointer-events: none !important; }"
+        )
+        try:
+            await self.page.mouse.move(center["x"], center["y"])
+            await self.page.mouse.wheel(0, -120)
+            await self.page.wait_for_timeout(500)
+        finally:
+            await canvas_style.evaluate("element => element.remove()")
 
     async def scroll_down_on_viewport(self, viewport_index: int = 0) -> None:
         center = await self.get_viewport_center(viewport_index)
-        await self.page.mouse.move(center["x"], center["y"])
-        await self.page.mouse.wheel(0, 120)
-        await self.page.wait_for_timeout(500)
+        canvas_style = await self.page.add_style_tag(
+            content="canvas { pointer-events: none !important; }"
+        )
+        try:
+            await self.page.mouse.move(center["x"], center["y"])
+            await self.page.mouse.wheel(0, 120)
+            await self.page.wait_for_timeout(500)
+        finally:
+            await canvas_style.evaluate("element => element.remove()")
 
     async def get_annotations_on_viewport(self, viewport_index: int = 0) -> list[dict]:
-        return await self.page.evaluate(
-            """
-            (viewportIndex) => {
-                const svgs = document.querySelectorAll('.viewport-element svg');
-                const svg = svgs[viewportIndex];
-                if (!svg) return [];
-                
-                const annotations = [];
-                const groups = svg.querySelectorAll('g[data-annotation-uid]');
-                
-                groups.forEach(g => {
-                    const uid = g.getAttribute('data-annotation-uid');
-                    const textEl = g.querySelector('text');
-                    const text = textEl?.textContent?.trim() || null;
-                    
-                    const line = svg.querySelector(`line[data-id="${uid}-line"]`);
-                    const lineData = line ? {
-                        x1: parseFloat(line.getAttribute('x1')),
-                        y1: parseFloat(line.getAttribute('y1')),
-                        x2: parseFloat(line.getAttribute('x2')),
-                        y2: parseFloat(line.getAttribute('y2'))
-                    } : null;
-                    
-                    annotations.push({ uid, text, lineData });
-                });
-                
-                return annotations;
-            }
-            """,
-            viewport_index,
+        result = await self._bridge_call(
+            "getAnnotations", {"viewportId": str(viewport_index)}
         )
+        return result["annotations"]
 
     async def get_annotation_count(self, viewport_index: int = 0) -> int:
-        return await self.page.evaluate(
-            """
-            (viewportIndex) => {
-                const svgs = document.querySelectorAll('.viewport-element svg');
-                const svg = svgs[viewportIndex];
-                if (!svg) return 0;
-                return svg.querySelectorAll('g[data-annotation-uid]').length;
-            }
-            """,
-            viewport_index,
+        result = await self._bridge_call(
+            "getAnnotations", {"viewportId": str(viewport_index)}
         )
+        return result["count"]
 
-    async def get_measurement_text(self, viewport_index: int = 0) -> str:
-        return await self.page.evaluate(
-            """
-            (viewportIndex) => {
-                const svgs = document.querySelectorAll('.viewport-element svg');
-                const svg = svgs[viewportIndex];
-                if (!svg) return null;
-                const textEl = svg.querySelector('g[data-annotation-uid] text');
-                return textEl?.textContent?.trim() || null;
-            }
-            """,
-            viewport_index,
-        )
+    async def get_measurement(self, viewport_index: int = 0) -> dict | None:
+        annotations = await self.get_annotations_on_viewport(viewport_index)
+        return annotations[0]["measurement"] if annotations else None
+
+    async def get_measurement_unit(self, viewport_index: int = 0) -> str | None:
+        measurement = await self.get_measurement(viewport_index)
+        return measurement["unit"] if measurement else None
 
     async def get_measurement_value_mm(self, viewport_index: int = 0) -> float | None:
-        text = await self.get_measurement_text(viewport_index)
-        if not text:
+        measurement = await self.get_measurement(viewport_index)
+        if not measurement or measurement["unit"] != "mm":
             return None
-        import re
-        match = re.search(r"([\d.]+)\s*mm", text)
-        return float(match.group(1)) if match else None
+        return measurement["value"]
+
+    async def _wait_for_active_tool(self, tool_name: str) -> None:
+        await self.page.wait_for_function(
+            """
+            toolName => window.__E2E_TEST_BRIDGE__
+                ?.getActiveTools?.()
+                ?.groups
+                ?.some(group => group.currentActiveTool === toolName)
+            """,
+            arg=tool_name,
+            timeout=self.tool_activate_timeout,
+        )
+
+    async def _bridge_call(self, method: str, argument=None):
+        return await self.page.evaluate(
+            """
+            ({ method, argument }) => {
+                const bridge = window.__E2E_TEST_BRIDGE__;
+                if (!bridge || typeof bridge[method] !== 'function') {
+                    throw new Error(`Missing Cornerstone bridge method: ${method}`);
+                }
+                return bridge[method](argument);
+            }
+            """,
+            {"method": method, "argument": argument},
+        )

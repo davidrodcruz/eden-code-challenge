@@ -10,6 +10,8 @@ from playwright.async_api import (
     async_playwright,
 )
 
+from core.cornerstone_test_bridge import BRIDGE_SCRIPT_PATH
+
 
 class PlaywrightDriver:
     def __init__(self):
@@ -75,6 +77,7 @@ class BrowserManager:
         if locale:
             context_options["locale"] = locale
         cls._context = await cls._browser.new_context(**context_options)
+        await cls._context.add_init_script(path=str(BRIDGE_SCRIPT_PATH))
         cls._context.set_default_timeout(int(team_config.get("timeout", 30000)))
         cls._page = await cls._context.new_page()
         context.page = cls._page

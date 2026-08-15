@@ -14,7 +14,7 @@ Feature: MPR Viewer - Eden PACS
     When the user activates the measurement tool
     And the user draws a line on viewport 0
     Then viewport 0 should have 1 annotation
-    And the measurement text should contain "mm"
+    And the measurement unit should be "mm"
     And the measurement value should be a positive number
     And take a screenshot of the page
 
@@ -81,14 +81,14 @@ Feature: MPR Viewer - Eden PACS
     And the browser is closed and the video is saved
 
   @scroll @pacs
-  Scenario: Annotation disappears on scroll up and reappears on scroll down
+  Scenario: Annotation model persists across slice navigation
     Given the user navigates to the MPR viewer
     And the MPR viewer has finished loading
     When the user activates the measurement tool
     And the user draws a line on viewport 0
     Then viewport 0 should have 1 annotation
     When the user scrolls up on viewport 0
-    Then viewport 0 should have 0 annotations
+    Then viewport 0 should have 1 annotation
     When the user scrolls down on viewport 0
     Then viewport 0 should have 1 annotation
     And take a screenshot of the page

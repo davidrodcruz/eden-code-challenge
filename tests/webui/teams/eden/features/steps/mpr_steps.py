@@ -69,12 +69,11 @@ async def step_verify_annotation_count(context, index, count):
     assert actual == count, f"Expected {count} annotations, found {actual}"
 
 
-@step('the measurement text should contain "{expected}"')
-async def step_verify_measurement_text(context, expected):
-    text = await context.mpr_page.get_measurement_text(0)
-    attach(f"Measurement text: {text}", name="Response", attachment_type=AttachmentType.TEXT)
-    assert text is not None, "No measurement text found"
-    assert expected in text, f"Expected '{expected}' in measurement text, got '{text}'"
+@step('the measurement unit should be "{expected}"')
+async def step_verify_measurement_unit(context, expected):
+    unit = await context.mpr_page.get_measurement_unit(0)
+    attach(f"Measurement unit: {unit}", name="Response", attachment_type=AttachmentType.TEXT)
+    assert unit == expected, f"Expected unit '{expected}', got '{unit}'"
 
 
 @step("the measurement value should be a positive number")
