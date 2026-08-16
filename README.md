@@ -28,6 +28,7 @@ eden-code-challenge/
 ├── core/                              # Framework core (reusable)
 │   ├── config.py                      # Multi-team YAML config loader
 │   ├── run_tests_utils.py             # CLI logic: behave commands, parallel, allure
+│   ├── shared_actions.py              # Generic async Playwright actions
 │   ├── cornerstone_test_bridge.py     # Sync Playwright model bridge + math assertions
 │   ├── cornerstone_test_bridge.js     # Pre-navigation webpack bridge injection
 │   └── drivers/
@@ -233,6 +234,20 @@ Each team is self-contained in `tests/webui/teams/<team>/` with its own config, 
 ### Page Object Model
 
 `MprViewerPage` (`pages/mpr_viewer.py`) centralizes all selectors and interactions. Step definitions are thin wrappers that call Page Object methods and attach evidence. Selectors are loaded from `config.yaml` — no hardcoded constants in the class.
+
+### Shared Actions
+
+`SharedActions` (`core/shared_actions.py`) is the common interaction layer for every page object. It provides navigation, click, right-click, fill, wait, hover, keyboard, coordinate click, double-click, drag, scroll, bounding-box, center, screenshot, and canvas pointer-event actions. A new page object can reuse it directly:
+
+```python
+from core.shared_actions import SharedActions
+
+
+class AnyPage(SharedActions):
+    pass
+```
+
+Domain-specific page methods should compose these actions instead of calling Playwright mouse or keyboard primitives directly. Behave steps remain thin and should call the page object or `SharedActions` instance.
 
 ### Async Playwright + Behave
 
