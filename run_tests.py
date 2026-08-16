@@ -16,9 +16,6 @@ def main():
     )
     parser.add_argument("--tags", help="Behave tags filter (e.g., @smoke)")
     parser.add_argument(
-        "-p", "--parallel", type=int, default=1, help="Parallel execution count"
-    )
-    parser.add_argument(
         "--headless",
         action="store_true",
         default=False,
@@ -27,7 +24,7 @@ def main():
 
     args = parser.parse_args()
     exit_code = run_tests(
-        args.team, args.feature, args.tags, args.parallel, args.headless
+        args.team, args.feature, args.tags, args.headless
     )
     sys.exit(exit_code)
 

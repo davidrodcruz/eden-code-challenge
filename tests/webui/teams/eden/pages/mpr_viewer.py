@@ -1,6 +1,6 @@
 from playwright.async_api import Page, Locator, TimeoutError as PlaywrightTimeoutError
 
-from core.shared_actions import SharedActions
+from utils.shared_actions import SharedActions
 
 
 class MprViewerPage(SharedActions):
@@ -123,6 +123,9 @@ class MprViewerPage(SharedActions):
         await self._bridge_call(
             "clearAnnotations", {"viewportId": str(viewport_index)}
         )
+
+    async def clear_all_annotations(self) -> None:
+        await self._bridge_call("clearAnnotations", {})
 
     async def _click_circular_menu_tool(self, path_start: str) -> bytes:
         position = await self.page.evaluate(
@@ -252,6 +255,165 @@ class MprViewerPage(SharedActions):
             "getAnnotations", {"viewportId": str(viewport_index)}
         )
         return result["count"]
+
+    async def get_visible_annotations_on_viewport(
+        self, viewport_index: int = 0
+    ) -> list[dict]:
+        result = await self._bridge_call(
+            "getVisibleAnnotations", {"viewportId": str(viewport_index)}
+        )
+        return result["annotations"]
+
+    async def get_visible_annotation_count(self, viewport_index: int = 0) -> int:
+        return await self._bridge_call(
+            "getVisibleAnnotationCount", {"viewportId": str(viewport_index)}
+        )
+
+    async def get_annotation_by_uid(
+        self, uid: str, viewport_index: int = 0
+    ) -> dict | None:
+        return await self._bridge_call(
+            "getAnnotationByUid",
+            {"uid": uid, "viewportId": str(viewport_index)},
+        )
+
+    async def get_viewport_state(self, viewport_index: int = 0) -> dict | None:
+        return await self._bridge_call("getViewportState", str(viewport_index))
+
+    async def world_to_canvas(
+        self, viewport_index: int, world_point: list[float]
+    ) -> dict:
+        result = await self._bridge_call(
+            "worldToCanvas",
+            {"viewportId": str(viewport_index), "worldPoint": world_point},
+        )
+        if not result.get("canvasPoint"):
+            raise ValueError(
+                f"World point cannot be projected on viewport {viewport_index}"
+            )
+        canvas_box = await self.bounding_box(
+            self.locator(self.viewport_articles)
+            .nth(viewport_index)
+            .locator("canvas")
+        )
+        return {
+            "x": canvas_box["x"] + result["canvasPoint"][0],
+            "y": canvas_box["y"] + result["canvasPoint"][1],
+            "local_x": result["canvasPoint"][0],
+            "local_y": result["canvasPoint"][1],
+            "worldPoint": result["worldPoint"],
+        }
+
+    async def wait_for_annotation_count(
+        self,
+        viewport_index: int,
+        expected: int,
+        *,
+        visible: bool = False,
+        timeout: int | None = None,
+    ) -> None:
+        method = "getVisibleAnnotationCount" if visible else "getAnnotationCount"
+        await self.wait_for_function(
+            """
+            ({ viewportId, expected, method }) => {
+                const bridge = window.__E2E_TEST_BRIDGE__;
+                if (!bridge || typeof bridge[method] !== 'function') return false;
+                try {
+                    return bridge[method]({ viewportId }) === expected;
+                } catch (_error) {
+                    return false;
+                }
+            }
+            """,
+            arg={
+                "viewportId": str(viewport_index),
+                "expected": expected,
+                "method": method,
+            },
+            timeout=timeout or self.tool_activate_timeout,
+        )
+
+    async def wait_for_measurement_value_change(
+        self,
+        uid: str,
+        previous_value: float,
+        viewport_index: int = 0,
+        *,
+        minimum_delta: float = 0.01,
+        timeout: int | None = None,
+    ) -> None:
+        await self.wait_for_function(
+            """
+            ({ uid, viewportId, previousValue, minimumDelta }) => {
+                const bridge = window.__E2E_TEST_BRIDGE__;
+                if (!bridge) return false;
+                try {
+                    const annotation = bridge.getAnnotationByUid({ uid, viewportId });
+                    const value = annotation?.measurement?.value;
+                    return value !== null && value !== undefined
+                        && Math.abs(value - previousValue) > minimumDelta;
+                } catch (_error) {
+                    return false;
+                }
+            }
+            """,
+            arg={
+                "uid": uid,
+                "viewportId": str(viewport_index),
+                "previousValue": previous_value,
+                "minimumDelta": minimum_delta,
+            },
+            timeout=timeout or self.tool_activate_timeout,
+        )
+
+    async def drag_annotation_endpoint(
+        self,
+        viewport_index: int,
+        uid: str,
+        *,
+        endpoint_index: int = 1,
+        delta_x: float = 40,
+        delta_y: float = 20,
+    ) -> None:
+        annotation = await self.get_annotation_by_uid(uid, viewport_index)
+        if not annotation:
+            raise ValueError(f"Annotation not found: {uid}")
+        points = annotation.get("points", [])
+        if endpoint_index >= len(points):
+            raise ValueError(f"Annotation endpoint not found: {endpoint_index}")
+
+        canvas_point = await self.world_to_canvas(
+            viewport_index, points[endpoint_index]
+        )
+        async with self.canvas_pointer_events_disabled():
+            await self.drag(
+                canvas_point["x"],
+                canvas_point["y"],
+                canvas_point["x"] + delta_x,
+                canvas_point["y"] + delta_y,
+                steps=10,
+            )
+        await self.wait_for_timeout(500)
+
+    async def select_annotation(self, viewport_index: int, uid: str) -> None:
+        annotation = await self.get_annotation_by_uid(uid, viewport_index)
+        if not annotation:
+            raise ValueError(f"Annotation not found: {uid}")
+        points = annotation.get("points", [])
+        if len(points) < 2:
+            raise ValueError(f"Annotation has no selectable line: {uid}")
+
+        midpoint = [
+            (points[0][axis] + points[1][axis]) / 2 for axis in range(3)
+        ]
+        canvas_point = await self.world_to_canvas(viewport_index, midpoint)
+        async with self.canvas_pointer_events_disabled():
+            await self.click_at(canvas_point["x"], canvas_point["y"])
+        await self.wait_for_timeout(300)
+
+    async def delete_selected_annotation(self) -> None:
+        await self.press_key_global("Delete")
+        await self.wait_for_timeout(500)
 
     async def get_measurement(self, viewport_index: int = 0) -> dict | None:
         annotations = await self.get_annotations_on_viewport(viewport_index)

@@ -6,7 +6,7 @@ from typing import Any
 
 from playwright.async_api import Page
 
-from core.shared_actions import SharedActions
+from utils.shared_actions import SharedActions
 
 logger = logging.getLogger(__name__)
 

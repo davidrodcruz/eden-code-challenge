@@ -26,6 +26,17 @@
       : null;
   };
 
+  const asPoint2D = value => {
+    if (!Array.isArray(value) && !ArrayBuffer.isView(value)) {
+      return null;
+    }
+
+    const point = Array.from(value, asNumber);
+    return point.length === 2 && point.every(value => value !== null)
+      ? point
+      : null;
+  };
+
   const call = (object, method, ...args) => {
     try {
       return object && typeof object[method] === "function"
@@ -291,6 +302,24 @@
     return Math.abs(dot) >= 0.999;
   }
 
+  function annotationIsOnCurrentSlice(annotation, viewportId) {
+    const viewport = getViewportState(viewportId);
+    if (!viewport) {
+      return true;
+    }
+
+    const metadata = annotation?.metadata || {};
+    if (metadata.referencedImageId && viewport.currentImageId) {
+      return metadata.referencedImageId === viewport.currentImageId;
+    }
+
+    if (metadata.sliceIndex !== undefined && viewport.sliceIndex !== null) {
+      return Number(metadata.sliceIndex) === viewport.sliceIndex;
+    }
+
+    return annotationBelongsToViewport(annotation, viewportId);
+  }
+
   function normalizeStats(cachedStats) {
     const measurements = [];
     if (!cachedStats || typeof cachedStats !== "object") {
@@ -414,13 +443,76 @@
       .filter(annotation =>
         annotationBelongsToViewport(annotation, options.viewportId)
       )
-      .map(normalizeAnnotation);
+      .filter(annotation =>
+        options.visibility === "current-slice"
+          ? annotationIsOnCurrentSlice(annotation, options.viewportId)
+          : true
+      )
+      .map(annotation => ({
+        ...normalizeAnnotation(annotation),
+        visibleOnViewport:
+          options.viewportId === undefined || options.viewportId === null
+            ? null
+            : annotationIsOnCurrentSlice(annotation, options.viewportId),
+      }));
 
     return toSerializable({
       schemaVersion: 1,
       source: "cornerstoneTools.annotation.state",
       count: annotations.length,
       annotations,
+    });
+  }
+
+  function getVisibleAnnotations(options = {}) {
+    if (typeof options !== "object" || options === null) {
+      options = { viewportId: options };
+    }
+    return getAnnotations({ ...options, visibility: "current-slice" });
+  }
+
+  function getAnnotationByUid(argument) {
+    const options =
+      argument && typeof argument === "object" ? argument : {};
+    const annotationUID =
+      argument && typeof argument === "object" ? argument.uid : argument;
+    const manager = getManager();
+    if (!manager) {
+      throw new Error("Cornerstone annotation manager is not ready");
+    }
+
+    const annotation = manager
+      .getAllAnnotations()
+      .find(candidate => candidate?.annotationUID === annotationUID);
+    if (!annotation) {
+      return null;
+    }
+
+    return toSerializable({
+      ...normalizeAnnotation(annotation),
+      visibleOnViewport:
+        options?.viewportId === undefined || options?.viewportId === null
+          ? null
+          : annotationIsOnCurrentSlice(annotation, options.viewportId),
+    });
+  }
+
+  function worldToCanvas(argument) {
+    const viewportId = argument?.viewportId;
+    const worldPoint = argument?.worldPoint;
+    const core = getCore();
+    const point = asVector(worldPoint);
+    const id = String(viewportId);
+    const engine = core ? call(core, "lD", "renderingEngine") : null;
+    const viewport = call(engine, "getViewport", id);
+    const canvasPoint = viewport && point
+      ? asPoint2D(call(viewport, "worldToCanvas", point))
+      : null;
+
+    return toSerializable({
+      viewportId: id,
+      worldPoint: point,
+      canvasPoint,
     });
   }
 
@@ -481,6 +573,10 @@
     },
     getAnnotations,
     getAnnotationCount: options => getAnnotations(options).count,
+    getVisibleAnnotations,
+    getVisibleAnnotationCount: options => getVisibleAnnotations(options).count,
+    getAnnotationByUid,
+    worldToCanvas,
     getViewportState,
     getActiveTools,
     getState,
