@@ -10,7 +10,7 @@ from playwright.async_api import (
     async_playwright,
 )
 
-from core.cornerstone_test_bridge import BRIDGE_SCRIPT_PATH
+from handlers.cornerstone_test_bridge import BRIDGE_SCRIPT_PATH
 
 
 class PlaywrightDriver:

@@ -1,4 +1,3 @@
-import concurrent.futures
 import shutil
 import subprocess
 import sys
@@ -89,7 +88,7 @@ def generate_report() -> None:
         print(" Failed to generate report")
 
 
-def run_single(team: str, feature: str = None, tags: str = None, headless: bool = False) -> int:
+def run_teams(team: str, feature: str = None, tags: str = None, headless: bool = False) -> int:
     total_exit_code = 0
     teams = [t.strip() for t in team.split(",")]
 
@@ -106,44 +105,14 @@ def run_single(team: str, feature: str = None, tags: str = None, headless: bool 
     return total_exit_code
 
 
-def run_parallel(teams: list[str], feature: str, tags: str, parallel: int, headless: bool = False) -> int:
-    def run_team(t):
-        cmd = build_behave_command(t, feature, tags, headless)
-        print(f"\n[PARALLEL] Running team: {t}")
-        result = subprocess.run(cmd)
-        return result.returncode
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = {executor.submit(run_team, t): t for t in teams}
-        results = {}
-        for future in concurrent.futures.as_completed(futures):
-            team_name = futures[future]
-            results[team_name] = future.result()
-
-    total_exit_code = 0
-    for team_name, exit_code in results.items():
-        status = "PASSED" if exit_code == 0 else "FAILED"
-        print(f"\n[RESULT] Team '{team_name}': {status}")
-        if exit_code != 0:
-            total_exit_code = 1
-
-    return total_exit_code
-
-
 def run_tests(
     team: str,
     feature: str = None,
     tags: str = None,
-    parallel: int = 1,
     headless: bool = False,
 ) -> int:
     clean_allure_results()
-    teams = [t.strip() for t in team.split(",")]
-
-    if len(teams) > 1 and parallel > 1:
-        exit_code = run_parallel(teams, feature, tags, parallel, headless)
-    else:
-        exit_code = run_single(team, feature, tags, headless)
+    exit_code = run_teams(team, feature, tags, headless)
 
     generate_report()
     return exit_code

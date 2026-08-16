@@ -4,7 +4,7 @@ Web UI test automation framework (BDD) for **Eden PACS** — a medical DICOM ima
 
 **Target:** `https://pacs.evacenter.com/v2/mpr`
 
-**9 scenarios** covering measurement tools, circular menu, viewports, and scroll/zoom navigation.
+**14 scenarios** covering measurement creation, spatial transforms, multiplanar isolation, mutation, tool state, circular menu, and viewer loading.
 
 ---
 
@@ -27,12 +27,18 @@ Web UI test automation framework (BDD) for **Eden PACS** — a medical DICOM ima
 eden-code-challenge/
 ├── core/                              # Framework core (reusable)
 │   ├── config.py                      # Multi-team YAML config loader
-│   ├── run_tests_utils.py             # CLI logic: behave commands, parallel, allure
-│   ├── shared_actions.py              # Generic async Playwright actions
-│   ├── cornerstone_test_bridge.py     # Sync Playwright model bridge + math assertions
-│   ├── cornerstone_test_bridge.js     # Pre-navigation webpack bridge injection
+│   ├── base_page.py                   # Base page and MCP action logging
 │   └── drivers/
 │       └── playwright_driver.py       # PlaywrightDriver + BrowserManager singleton
+│
+├── handlers/                           # Browser state and test handlers
+│   ├── cornerstone_test_bridge.py      # Sync Playwright model bridge + math assertions
+│   └── cornerstone_test_bridge.js      # Pre-navigation webpack bridge injection
+│
+├── utils/                              # Reusable test utilities
+│   ├── progress_utils.py               # Progress output helpers
+│   ├── run_tests_utils.py              # CLI logic: behave commands and allure
+│   ├── shared_actions.py               # Generic async Playwright actions
 │
 ├── tests/webui/teams/eden/            # Team "eden" - Eden PACS tests
 │   ├── config.yaml                    # Team config (URL, browser, selectors, timeouts)
@@ -40,7 +46,7 @@ eden-code-challenge/
 │   │   └── mpr_viewer.py             # Page Object: selectors + MPR viewer actions
 │   └── features/
 │       ├── environment.py             # Behave hooks (screenshots, cleanup, config load)
-│       ├── mpr_viewer.feature         # 9 Gherkin scenarios
+│       ├── mpr_viewer.feature         # 14 Gherkin scenarios
 │       └── steps/
 │           └── mpr_steps.py           # Step definitions (thin wrappers → Page Object)
 │
@@ -94,7 +100,6 @@ python run_tests.py -t eden --headless          # No window
 | `-t, --team` | Team name (required) | — |
 | `-f, --feature` | Specific feature | All |
 | `--tags` | Behave filter (`@smoke`, `@measurement`, etc.) | All |
-| `-p, --parallel` | Parallel execution (N teams) | 1 |
 | `--headless` | Force headless (override `config.yaml`) | yaml value |
 
 ---
@@ -142,14 +147,19 @@ Overrides via env vars: `EDEN_BASE_URL`, `EDEN_BROWSER`, `EDEN_HEADLESS`, `EDEN_
 | # | Tag | Scenario | What it verifies |
 |---|-----|----------|------------------|
 | 1 | `@smoke` | Page load | Viewer loads, 4 viewports visible |
-| 2 | `@measurement` | Ruler happy path | Draw line → model annotation + unit + value > 0 |
-| 3 | `@toolswitch` | Pan after measurement | Pan drag doesn't create extra annotations |
-| 4 | `@zoom` | Zoom persistence | Annotation survives zoom operation |
-| 5 | `@persist` | Consecutive draws | 2 lines = 2 annotations (tool stays active) |
-| 6 | `@menu` | Menu close | Outside click closes circular menu |
-| 7 | `@zerodistance` | Double-click edge case | Click on same point = 0 annotations |
-| 8 | `@crossplane` | Viewport independence | Draw in viewport 1 doesn't affect viewport 0 |
-| 9 | `@scroll` | Scroll behavior | Annotation UID and world points persist across slices |
+| 2 | `@measurement` | Exact measurement geometry | World-space distance matches the reported millimeter value |
+| 3 | `@persist` | Unique measurement state | Multiple measurements retain unique UIDs |
+| 4 | `@zerodistance` | Ghost annotation prevention | Zero-distance input registers no annotation |
+| 5 | `@zoom` | Zoom transform integrity | UID and points persist after zoom |
+| 6 | `@pan` | Pan transform integrity | World coordinates remain unchanged after pan |
+| 7 | `@scroll` | Slice isolation | Annotation is hidden on adjacent slice and persists in state |
+| 8 | `@crossplane` | Axial/coronal isolation | Axial annotation is not registered on coronal plane |
+| 9 | `@crossplane` | Sagittal/axial isolation | Sagittal annotation is not registered on axial plane |
+| 10 | `@edit` | Measurement mutation | Endpoint movement changes points and length, preserving UID |
+| 11 | `@delete` | State cleanup | Deleting a selected measurement removes its UID |
+| 12 | `@toolswitch` | Non-annotative navigation | Pan does not create measurements |
+| 13 | `@toolswitch` | Tool toggle integrity | Switching tools preserves old state and allows a second measurement |
+| 14 | `@menu` | Menu close | Outside click closes circular menu |
 
 Filter by tag:
 
@@ -229,7 +239,7 @@ Command: docker compose run --rm tests -t eden --tags @smoke --headless
 
 ### Multi-Team
 
-Each team is self-contained in `tests/webui/teams/<team>/` with its own config, features, and pages. `run_tests.py -t team1,team2 -p 2` runs teams in parallel.
+Each team is self-contained in `tests/webui/teams/<team>/` with its own config, features, and pages. `run_tests.py -t team1,team2` runs the requested teams sequentially.
 
 ### Page Object Model
 
@@ -237,10 +247,10 @@ Each team is self-contained in `tests/webui/teams/<team>/` with its own config, 
 
 ### Shared Actions
 
-`SharedActions` (`core/shared_actions.py`) is the common interaction layer for every page object. It provides navigation, click, right-click, fill, wait, hover, keyboard, coordinate click, double-click, drag, scroll, bounding-box, center, screenshot, and canvas pointer-event actions. A new page object can reuse it directly:
+`SharedActions` (`utils/shared_actions.py`) is the common interaction layer for every page object. It provides navigation, click, right-click, fill, wait, hover, keyboard, coordinate click, double-click, drag, scroll, bounding-box, center, screenshot, and canvas pointer-event actions. A new page object can reuse it directly:
 
 ```python
-from core.shared_actions import SharedActions
+from utils.shared_actions import SharedActions
 
 
 class AnyPage(SharedActions):
@@ -264,7 +274,7 @@ All browser interactions use Playwright async. Steps are `async def`. The `Brows
 
 ## Architecture Note (Multi-Tenant Design)
 
-The `tests/webui/teams/eden/` structure and the `-t eden` CLI flag might look over-engineered for a 9-scenario challenge. This is intentional.
+The `tests/webui/teams/eden/` structure and the `-t eden` CLI flag might look over-engineered for a 14-scenario challenge. This is intentional.
 
 My approach as a Quality Architect isn't just "automate a flow" — it's to build **scalable test infrastructure** (a Quality Platform). In a real environment like Eden, where different squads (e.g., Viewer, Patient Portal, Billing) automate against the same product, a monolithic design creates dependency conflicts and CI/CD bottlenecks.
 
@@ -272,7 +282,7 @@ This framework is designed to be **Multi-Tenant**:
 
 - **Config isolation** — `config.yaml` per team
 - **Isolation of Page Objects and Features** — each team owns its domain
-- **Parallel execution by business domain** in the pipeline (`-t viewer,portal,billing -p 3`)
+- **Independent execution by business domain** in the pipeline (`-t viewer,portal,billing`)
 
 The goal of this delivery is to demonstrate how I would structure the base so that **N teams can automate autonomously from day 1**.
 
@@ -286,16 +296,11 @@ Eden uses a **circular menu** (right-click on viewport) to select tools, not a t
 
 ### Canvas Interception Fix
 
-Cornerstone3D renders on `<canvas>` that intercepts pointer events. Solution: inject CSS temporarily before interacting:
+Cornerstone3D renders on `<canvas>` that intercepts pointer events. `SharedActions.canvas_pointer_events_disabled()` routes coordinate events to the viewport container while preserving cleanup:
 
 ```python
-canvas_style = await page.add_style_tag(
-    content="canvas { pointer-events: none !important; }"
-)
-try:
-    await page.mouse.click(x, y)
-finally:
-    await canvas_style.evaluate("element => element.remove()")
+async with actions.canvas_pointer_events_disabled():
+    await actions.click_at(x, y)
 ```
 
 ### SVG Path Tool Identification
@@ -326,7 +331,7 @@ The viewer loads heavy DICOM data. `networkidle` is unreliable due to WebSockets
 
 Annotation assertions must use CornerstoneTools state, never rendered SVG, canvas pixels, or measurement labels. The deployed bundle (`viewers@0.78.0`) contains `annotation.state.getAnnotationManager()` and `getAllAnnotations()`, but it does not expose `window.cornerstoneTools` or `window.cornerstone3D`.
 
-The frontend has a development-only `window.__viewers` object with `getMeasurements`, but it is created only when `location.hostname === "localhost"`. The PACS URL therefore needs the test-side fallback in `core/cornerstone_test_bridge.js`. `BrowserManager` installs it with `add_init_script()` before the application scripts execute.
+The frontend has a development-only `window.__viewers` object with `getMeasurements`, but it is created only when `location.hostname === "localhost"`. The PACS URL therefore needs the test-side fallback in `handlers/cornerstone_test_bridge.js`. `BrowserManager` installs it with `add_init_script()` before the application scripts execute.
 
 The bridge locates the loaded webpack modules by exported API shape, captures the CornerstoneTools module, and returns only JSON-safe data:
 
@@ -335,13 +340,14 @@ The bridge locates the loaded webpack modules by exported API shape, captures th
 - world-space `points`, plane vectors, and camera vectors
 - numeric measurements and units from `data.cachedStats`
 - viewport camera and current-slice state
+- current-slice visibility, UID lookup, and world-to-canvas projection for interaction
 
 The bridge deliberately does not inspect the presentation overlay or read label strings. Model annotations remain in state when a slice changes; a test should compare UID and world-space points before and after navigation rather than assert that an overlay is rendered.
 
 Synchronous Playwright usage:
 
 ```python
-from core.cornerstone_test_bridge import (
+from handlers.cornerstone_test_bridge import (
     CornerstoneTestBridge,
     assert_annotation_persisted,
     assert_vector_close,
@@ -392,7 +398,7 @@ The preferred frontend change is to export a stable `window.__E2E_TEST_BRIDGE__`
 
 ### New viewport interaction
 
-Use `draw_line_on_viewport()` as template: get center with `get_viewport_center()`, calculate offsets, use `page.mouse.click()`.
+Use `draw_line_on_viewport()` as template: get center with `get_viewport_center()`, calculate offsets, and compose `SharedActions.click_at()`, `drag()`, or `scroll()`.
 
 ### New annotation assertion
 
@@ -444,6 +450,9 @@ Absolute imports like `tests.webui...` are not used (root folder has a hyphen).
 | Click hits wrong element | Canvas intercepts pointer events | Inject `canvas { pointer-events: none !important; }` |
 | Circular menu item not found | Incomplete menu animation | Add `wait_for_timeout(500)` after opening |
 | Measurement not created | Tool not fully activated | Wait for bridge `getActiveTools()` to report `Length` |
+| Slice assertion is ambiguous | Model state persists off-slice | Use `get_visible_annotation_count()` for rendered slice visibility and `get_annotation_count()` for persistence |
+| Endpoint interaction misses | World coordinates are local to the canvas | Project with `world_to_canvas()` and add the canvas bounding-box origin |
+| Delete does nothing | Annotation was not selected | Select using the projected world-space midpoint before pressing `Delete` |
 | Gray/blank viewports | WebGL doesn't render in headless | Use `headless: false` in config |
 | Timeout on `networkidle` | Open WebSocket connections | Catch timeout, fallback to fixed wait |
 | Sub-menu selects wrong tool | CSS transforms shift positions | Identify tools by SVG `d` attribute |
@@ -465,7 +474,7 @@ Absolute imports like `tests.webui...` are not used (root folder has a hyphen).
 
 ## Author
 
-**davidrodcruz** — Software Engineer in Test
+**davidrodcruz** — Senior Software Engineer in Test
 
 ---
 

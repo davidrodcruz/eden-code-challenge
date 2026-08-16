@@ -76,6 +76,49 @@ class CornerstoneTestBridge:
             )["count"]
         )
 
+    def get_visible_annotations(
+        self,
+        *,
+        viewport_id: int | str,
+        tool_name: str | None = None,
+    ) -> dict[str, Any]:
+        options: dict[str, Any] = {"viewportId": str(viewport_id)}
+        if tool_name is not None:
+            options["toolName"] = tool_name
+        return self._call("getVisibleAnnotations", options)
+
+    def get_visible_annotation_count(
+        self,
+        *,
+        viewport_id: int | str,
+        tool_name: str | None = None,
+    ) -> int:
+        return int(
+            self.get_visible_annotations(
+                viewport_id=viewport_id,
+                tool_name=tool_name,
+            )["count"]
+        )
+
+    def get_annotation_by_uid(
+        self,
+        uid: str,
+        *,
+        viewport_id: int | str | None = None,
+    ) -> dict[str, Any] | None:
+        argument: dict[str, Any] = {"uid": uid}
+        if viewport_id is not None:
+            argument["viewportId"] = str(viewport_id)
+        return self._call("getAnnotationByUid", argument)
+
+    def world_to_canvas(
+        self, viewport_id: int | str, world_point: Sequence[float]
+    ) -> dict[str, Any]:
+        return self._call(
+            "worldToCanvas",
+            {"viewportId": str(viewport_id), "worldPoint": list(world_point)},
+        )
+
     def get_viewport_state(self, viewport_id: int | str) -> dict[str, Any] | None:
         return self._call("getViewportState", str(viewport_id))
 
@@ -143,6 +186,7 @@ def assert_annotation_points_close(
             f"annotation point count differs: {len(actual_points)} != "
             f"{len(expected_points)}"
         )
+
     for index, (actual, expected) in enumerate(zip(actual_points, expected_points)):
         assert_vector_close(
             actual,
@@ -152,6 +196,26 @@ def assert_annotation_points_close(
         )
 
 
+def assert_measurement_geometry(
+    annotation: dict[str, Any], *, tolerance: float = 0.01
+) -> None:
+    """Check that the reported measure matches the normalized world-space points."""
+    points = annotation.get("points", [])
+    measurement = annotation.get("measurement", {})
+    if len(points) != 2:
+        raise AssertionError(f"Expected two world-space points, got {len(points)}")
+
+    reported_value = measurement.get("value")
+    if reported_value is None or measurement.get("unit") != "mm":
+        raise AssertionError(f"Expected a millimeter measurement, got {measurement}")
+
+    calculated_value = dist(points[0], points[1])
+    if abs(calculated_value - reported_value) > tolerance:
+        raise AssertionError(
+            "World-space distance does not match reported measurement: "
+            f"calculated={calculated_value}, reported={reported_value}, "
+            f"tolerance={tolerance}"
+        )
 def assert_annotation_persisted(
     before: dict[str, Any],
     after: dict[str, Any],
