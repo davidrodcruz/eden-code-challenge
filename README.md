@@ -28,6 +28,8 @@ eden-code-challenge/
 ├── core/                              # Framework core (reusable)
 │   ├── config.py                      # Multi-team YAML config loader
 │   ├── run_tests_utils.py             # CLI logic: behave commands, parallel, allure
+│   ├── cornerstone_test_bridge.py     # Sync Playwright model bridge + math assertions
+│   ├── cornerstone_test_bridge.js     # Pre-navigation webpack bridge injection
 │   └── drivers/
 │       └── playwright_driver.py       # PlaywrightDriver + BrowserManager singleton
 │
@@ -122,11 +124,6 @@ mpr_viewer:
     pan: 'M11.293 4.293a1 1 0 011.414 0l'
     zoom: 'M11 6a5 5 0 100 10 5 5 0 000-1'
 
-  tool_labels:
-    measurement: Measurement
-    pan: Pan
-    zoom: Zoom
-
   timeouts:
     network_idle: 15000
     fallback_wait: 5000
@@ -144,14 +141,14 @@ Overrides via env vars: `EDEN_BASE_URL`, `EDEN_BROWSER`, `EDEN_HEADLESS`, `EDEN_
 | # | Tag | Scenario | What it verifies |
 |---|-----|----------|------------------|
 | 1 | `@smoke` | Page load | Viewer loads, 4 viewports visible |
-| 2 | `@measurement` | Ruler happy path | Draw line → annotation + text + value > 0 |
+| 2 | `@measurement` | Ruler happy path | Draw line → model annotation + unit + value > 0 |
 | 3 | `@toolswitch` | Pan after measurement | Pan drag doesn't create extra annotations |
 | 4 | `@zoom` | Zoom persistence | Annotation survives zoom operation |
 | 5 | `@persist` | Consecutive draws | 2 lines = 2 annotations (tool stays active) |
 | 6 | `@menu` | Menu close | Outside click closes circular menu |
 | 7 | `@zerodistance` | Double-click edge case | Click on same point = 0 annotations |
 | 8 | `@crossplane` | Viewport independence | Draw in viewport 1 doesn't affect viewport 0 |
-| 9 | `@scroll` | Scroll behavior | Annotation disappears on scroll up, reappears on scroll down |
+| 9 | `@scroll` | Scroll behavior | Annotation UID and world points persist across slices |
 
 Filter by tag:
 
@@ -310,13 +307,61 @@ The viewer loads heavy DICOM data. `networkidle` is unreliable due to WebSockets
 2. `wait_for_selector("article")` — viewer shell exists
 3. `wait_for_load_state("networkidle", timeout=15000)` with 5s fallback
 
-### SVG Annotation Overlays
+### Cornerstone Model Bridge
 
-Measurements are SVG overlays on the WebGL canvas, NOT inside the canvas. They can be queried via DOM:
+Annotation assertions must use CornerstoneTools state, never rendered SVG, canvas pixels, or measurement labels. The deployed bundle (`viewers@0.78.0`) contains `annotation.state.getAnnotationManager()` and `getAllAnnotations()`, but it does not expose `window.cornerstoneTools` or `window.cornerstone3D`.
 
-```javascript
-document.querySelectorAll('.viewport-element svg g[data-annotation-uid]')
+The frontend has a development-only `window.__viewers` object with `getMeasurements`, but it is created only when `location.hostname === "localhost"`. The PACS URL therefore needs the test-side fallback in `core/cornerstone_test_bridge.js`. `BrowserManager` installs it with `add_init_script()` before the application scripts execute.
+
+The bridge locates the loaded webpack modules by exported API shape, captures the CornerstoneTools module, and returns only JSON-safe data:
+
+- `uid` and `toolName`
+- `frameOfReferenceUID`, `referencedImageId`, `volumeId`, and `sliceIndex`
+- world-space `points`, plane vectors, and camera vectors
+- numeric measurements and units from `data.cachedStats`
+- viewport camera and current-slice state
+
+The bridge deliberately does not inspect the presentation overlay or read label strings. Model annotations remain in state when a slice changes; a test should compare UID and world-space points before and after navigation rather than assert that an overlay is rendered.
+
+Synchronous Playwright usage:
+
+```python
+from core.cornerstone_test_bridge import (
+    CornerstoneTestBridge,
+    assert_annotation_persisted,
+    assert_vector_close,
+)
+
+bridge = CornerstoneTestBridge(page)
+bridge.install()  # Must run before page.goto(...)
+page.goto(viewer_url)
+bridge.wait_until_ready()
+
+before = bridge.get_annotations(viewport_id=0, tool_name="Length")
+assert before["count"] == 1
+annotation = before["annotations"][0]
+assert annotation["measurement"]["unit"] == "mm"
+assert annotation["measurement"]["value"] > 0
+
+slice_before = bridge.get_viewport_state(0)
+# Perform the slice interaction through the normal Page Object.
+slice_after = bridge.get_viewport_state(0)
+assert slice_before["sliceIndex"] != slice_after["sliceIndex"]
+
+after = bridge.get_annotations(viewport_id=0, tool_name="Length")
+assert_annotation_persisted(before, after, tolerance=0.1)
+assert_vector_close(
+    after["annotations"][0]["points"][0],
+    before["annotations"][0]["points"][0],
+    tolerance=0.1,
+)
 ```
+
+### Testability Assessment
+
+The current frontend makes a stable test contract harder than necessary. CornerstoneTools is bundled privately, the useful `__viewers` bridge is gated to `localhost`, and annotation ownership is grouped by Frame of Reference rather than stored as a public viewport contract. The webpack fallback is therefore a test-only compatibility layer, not a long-term API.
+
+The preferred frontend change is to export a stable `window.__E2E_TEST_BRIDGE__` only in an explicit E2E build or test environment. That bridge should call the imported CornerstoneTools/Core APIs directly and keep the same JSON schema. This removes dependence on webpack internals and makes bundle upgrades fail fast at the contract boundary.
 
 ---
 
@@ -336,17 +381,7 @@ Use `draw_line_on_viewport()` as template: get center with `get_viewport_center(
 
 ### New annotation assertion
 
-Annotations are SVGs with consistent structure:
-
-```
-.viewport-element svg
-  g[data-annotation-uid="xxx"]
-    text              # Measurement value (e.g., "206 mm")
-    line[data-id]     # Ruler line
-    circle[data-id]   # Endpoints (optional)
-```
-
-Query `g[data-annotation-uid]` groups and inspect child elements.
+Use `CornerstoneTestBridge.get_annotations()` and assert on `uid`, world-space `points`, `referencedImageId`, `sliceIndex`, and `measurement`. Keep tolerance explicit for floating-point world coordinates.
 
 ---
 
@@ -357,9 +392,6 @@ Query `g[data-annotation-uid]` groups and inspect child elements.
 | Circular menu (open) | `.circular-menu.opened-nav` |
 | Circular menu items | `#circular-menu.opened-nav > ul > li > a` |
 | Viewport articles | `article` |
-| Viewport SVG overlay | `.viewport-element svg` |
-| Annotation group | `g[data-annotation-uid]` |
-| Measurement text | `g[data-annotation-uid] text` |
 | Active tool tab | `[role="tab"][aria-selected="true"]` |
 | Longitud button | `button[data-cy="button-Longitud"]` |
 
@@ -396,7 +428,7 @@ Absolute imports like `tests.webui...` are not used (root folder has a hyphen).
 |---------|-------|-----|
 | Click hits wrong element | Canvas intercepts pointer events | Inject `canvas { pointer-events: none !important; }` |
 | Circular menu item not found | Incomplete menu animation | Add `wait_for_timeout(500)` after opening |
-| Measurement not created | Tool not fully activated | Add `wait_for_function` verifying tab/button |
+| Measurement not created | Tool not fully activated | Wait for bridge `getActiveTools()` to report `Length` |
 | Gray/blank viewports | WebGL doesn't render in headless | Use `headless: false` in config |
 | Timeout on `networkidle` | Open WebSocket connections | Catch timeout, fallback to fixed wait |
 | Sub-menu selects wrong tool | CSS transforms shift positions | Identify tools by SVG `d` attribute |
